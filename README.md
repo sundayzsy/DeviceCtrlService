@@ -1,2 +1,2 @@
 # DeviceCtrlService
-Multiple Device Control Protocol Service
+Multiple Device Control Protocol Service.
