@@ -1,0 +1,47 @@
+{
+  "device_id": "device_001",
+  "device_name": "温度控制器",
+  "protocol": "modbus_rtu",
+  "slave_address": 1,
+  "rtu_params": {
+    "port_name": "COM1",
+    "baud_rate": 9600,
+    "data_bits": 8,
+    "stop_bits": 1,
+    "parity": "none"
+  },
+  "tcp_params": {
+    "ip_address": "192.168.1.100",
+    "port": 502
+  },
+  "protocol_params": {
+    "response_timeout": 1000,
+    "retry_count": 3,
+    "polling_interval": 5000,
+    "frame_interval": {
+      "enabled": true,
+      "min_interval": 100,
+      "unit": "ms"
+    }
+  },
+  "registers": [
+    {
+      "address": 0,
+      "name": "temperature",
+      "type": "input_register",
+      "data_type": "int16",
+      "access": "read",
+      "description": "当前温度值",
+      "unit": "°C"
+    },
+    {
+      "address": 5,
+      "name": "pressure",
+      "type": "input_register",
+      "data_type": "uint16",
+      "access": "read",
+      "description": "压力值",
+      "unit": "kPa"
+    }
+  ]
+}

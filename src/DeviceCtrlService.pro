@@ -1,8 +1,13 @@
-QT       += core gui
+QT       += core gui network serialport serialbus
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 CONFIG += c++11
+
+INCLUDEPATH += $$PWD/core \
+               $$PWD/devices \
+               $$PWD/protocols
+DESTDIR = $$PWD/../
 
 # The following define makes your compiler emit warnings if you use
 # any Qt feature that has been marked deprecated (the exact warnings
@@ -17,13 +22,31 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
     main.cpp \
-    mainwindow.cpp
+    mainwindow.cpp \
+    core/Device.cpp \
+    core/DeviceManager.cpp \
+    core/ProtocolHandler.cpp \
+    core/ThreadManager.cpp \
+    core/DataManager.cpp \
+    devices/LSJDevice.cpp \
+    devices/JGQDevice.cpp
 
 HEADERS += \
-    mainwindow.h
+    core/modbusdata.h \
+    mainwindow.h \
+    core/Device.h \
+    core/DeviceManager.h \
+    core/ProtocolHandler.h \
+    core/ThreadManager.h \
+    core/DataManager.h \
+    devices/LSJDevice.h \
+    devices/JGQDevice.h
 
 FORMS += \
     mainwindow.ui
+
+RESOURCES += \
+    resources.qrc
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
