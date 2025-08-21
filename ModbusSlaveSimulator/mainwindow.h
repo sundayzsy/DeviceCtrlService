@@ -11,6 +11,7 @@ namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
 
 class QModbusRtuSerialSlave;
+class QModbusTcpServer;
 
 class MainWindow : public QMainWindow
 {
@@ -24,6 +25,8 @@ private slots:
     void on_connectButton_clicked();
     void onDataWritten(QModbusDataUnit::RegisterType table, int address, int size);
     void onTableCellChanged(int row, int column);
+    void onProtocolChanged(int index);
+    void onConfigFileChanged(const QString &fileName);
 
 private:
     void initDataMap(const QString& path);
@@ -35,7 +38,8 @@ private:
 
 
     Ui::MainWindow *ui;
-    QModbusRtuSerialSlave *m_modbusSlave;
+    QModbusRtuSerialSlave *m_modbusRtuSlave;
+    QModbusTcpServer *m_modbusTcpServer;
     QMap<quint16, ModbusSturct> m_dataMap;
     QMap<QString, QPair<quint16, int>> m_keyIndexMap;
     QMap<QString, int> m_uiRowMap; // key -> row index in UI table

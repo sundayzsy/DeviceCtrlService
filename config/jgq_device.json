@@ -1,19 +1,15 @@
 {
-  "device_id": "lsj_001",
-  "device_name": "冷水机",
-  "protocol": "modbus_rtu",
-  "rtu_params": {
-    "port_name": "COM1",
-    "baud_rate": 9600,
-    "data_bits": 8,
-    "stop_bits": 1,
-    "parity": "none"
+  "device_id": "jgq_001",
+  "device_name": "激光器",
+  "protocol": "modbus_tcp",
+  "tcp_params": {
+    "ip_address": "127.0.0.1",
+    "port": 5020
   },
   "protocol_params": {
     "response_timeout": 3000,
     "retry_count": 0
   },
-  "server_address": 1,
   "registers": [
     { "address": 128,	"key": "LSJ_WaterPump_Status", "name": "水泵状态",			"length": 1, "bitpos":0, "access": "read" ,"regtype":"coil"},
     { "address": 129,	"key": "LSJ_Compressor_Status", "name": "压缩机状态", 		"length": 1, "bitpos":0, "access": "read" ,"regtype":"coil"},

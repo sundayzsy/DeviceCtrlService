@@ -1,6 +1,7 @@
 ﻿#include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include <QModbusRtuSerialSlave>
+#include <QModbusTcpServer>
 #include <QSerialPortInfo>
 #include <QDebug>
 #include <QSerialPort>
@@ -11,23 +12,45 @@
 #include <QMessageBox>
 #include <QCoreApplication>
 #include <QDir>
+#include <QSplitter>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
-    , m_modbusSlave(nullptr)
+    , m_modbusRtuSlave(nullptr)
+    , m_modbusTcpServer(nullptr)
 {
     ui->setupUi(this);
-    QString configPath = QDir(QCoreApplication::applicationDirPath()).filePath("config/lsj_device.json");
-    initDataMap(configPath);
-    setupUIFromDataMap();
+
+    // 设置分割器的初始大小，让日志区域更小
+    ui->splitter->setSizes({400, 100});
+
     initSerialPorts();
+
+    // 填充配置文件下拉列表
+    QDir configDir(QCoreApplication::applicationDirPath() + "/config");
+    QStringList nameFilters;
+    nameFilters << "*.json";
+    QStringList configFiles = configDir.entryList(nameFilters, QDir::Files | QDir::NoDotAndDotDot);
+    ui->configFileComboBox->addItems(configFiles);
+
+    // 连接信号和槽
+    connect(ui->protocolComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::onProtocolChanged);
+    connect(ui->configFileComboBox, &QComboBox::currentTextChanged, this, &MainWindow::onConfigFileChanged);
+
+    // 初始加载
+    if (!configFiles.isEmpty()) {
+        onConfigFileChanged(configFiles.first());
+    }
+    onProtocolChanged(ui->protocolComboBox->currentIndex());
 }
 
 MainWindow::~MainWindow()
 {
-    if (m_modbusSlave)
-        m_modbusSlave->disconnectDevice();
+    if (m_modbusRtuSlave)
+        m_modbusRtuSlave->disconnectDevice();
+    if (m_modbusTcpServer)
+        m_modbusTcpServer->disconnectDevice();
     delete ui;
 }
 
@@ -40,6 +63,13 @@ void MainWindow::initSerialPorts()
 
 void MainWindow::initDataMap(const QString& path)
 {
+    // 清理旧数据
+    m_dataMap.clear();
+    m_keyIndexMap.clear();
+    m_uiRowMap.clear();
+    m_addressOrder.clear();
+    ui->registerTableWidget->setRowCount(0);
+
     QFile file(path);
     if (!file.open(QIODevice::ReadOnly)) {
         QMessageBox::critical(this, "Error", "Could not open config file: " + file.errorString());
@@ -48,6 +78,21 @@ void MainWindow::initDataMap(const QString& path)
 
     QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
     QJsonObject rootObj = doc.object();
+
+    // 根据配置文件设置协议
+    QString protocol = rootObj.value("protocol").toString("modbus_rtu");
+    if (protocol.toLower() == "modbus_tcp") {
+        ui->protocolComboBox->setCurrentIndex(1);
+        QJsonObject tcpParams = rootObj.value("tcp_params").toObject();
+        ui->ipAddressEdit->setText(tcpParams.value("ip_address").toString("127.0.0.1"));
+        ui->portEdit->setText(QString::number(tcpParams.value("port").toInt(502)));
+    } else {
+        ui->protocolComboBox->setCurrentIndex(0);
+        QJsonObject rtuParams = rootObj.value("rtu_params").toObject();
+        ui->portComboBox->setCurrentText(rtuParams.value("port_name").toString());
+        ui->slaveIdEdit->setText(QString::number(rootObj.value("server_address").toInt(1)));
+    }
+
     QJsonArray registersArray = rootObj["registers"].toArray();
 
     for (const QJsonValue& val : registersArray) {
@@ -137,7 +182,8 @@ void MainWindow::setupUIFromDataMap()
 
 void MainWindow::setupModbusMap()
 {
-    if (!m_modbusSlave) return;
+    QModbusServer *currentServer = (ui->protocolComboBox->currentIndex() == 0) ? static_cast<QModbusServer*>(m_modbusRtuSlave) : static_cast<QModbusServer*>(m_modbusTcpServer);
+    if (!currentServer) return;
 
     QModbusDataUnitMap regMap;
     QMap<QModbusDataUnit::RegisterType, QPair<int, int>> ranges; // Min/Max addresses
@@ -172,7 +218,7 @@ void MainWindow::setupModbusMap()
                                 .arg(type).arg(minAddr).arg(maxAddr).arg(count));
     }
 
-    m_modbusSlave->setMap(regMap);
+    currentServer->setMap(regMap);
 
     // 3. Fill the map with initial values
     for (auto it = m_dataMap.constBegin(); it != m_dataMap.constEnd(); ++it) {
@@ -182,29 +228,55 @@ void MainWindow::setupModbusMap()
 
 void MainWindow::on_connectButton_clicked()
 {
-    if (!m_modbusSlave) {
-        m_modbusSlave = new QModbusRtuSerialSlave(this);
-        setupModbusMap();
-        connect(m_modbusSlave, &QModbusServer::dataWritten, this, &MainWindow::onDataWritten);
-    }
+    if (ui->protocolComboBox->currentIndex() == 0) { // RTU
+        if (!m_modbusRtuSlave) {
+            m_modbusRtuSlave = new QModbusRtuSerialSlave(this);
+            connect(m_modbusRtuSlave, &QModbusServer::dataWritten, this, &MainWindow::onDataWritten);
+        }
+        setupModbusMap(); // Always setup map before connect
 
-    if (m_modbusSlave->state() == QModbusDevice::ConnectedState) {
-        m_modbusSlave->disconnectDevice();
-        ui->connectButton->setText("Connect");
-        ui->logTextEdit->append("Disconnected.");
-    } else {
-        m_modbusSlave->setConnectionParameter(QModbusDevice::SerialPortNameParameter, ui->portComboBox->currentText());
-        m_modbusSlave->setConnectionParameter(QModbusDevice::SerialBaudRateParameter, 9600);
-        m_modbusSlave->setConnectionParameter(QModbusDevice::SerialDataBitsParameter, QSerialPort::Data8);
-        m_modbusSlave->setConnectionParameter(QModbusDevice::SerialParityParameter, QSerialPort::NoParity);
-        m_modbusSlave->setConnectionParameter(QModbusDevice::SerialStopBitsParameter, QSerialPort::OneStop);
-        m_modbusSlave->setServerAddress(ui->slaveIdEdit->text().toInt());
-
-        if (m_modbusSlave->connectDevice()) {
-            ui->connectButton->setText("Disconnect");
-            ui->logTextEdit->append("Connected successfully.");
+        if (m_modbusRtuSlave->state() == QModbusDevice::ConnectedState) {
+            m_modbusRtuSlave->disconnectDevice();
+            ui->connectButton->setText("Connect");
+            ui->logTextEdit->append("RTU Disconnected.");
         } else {
-            ui->logTextEdit->append("Connect failed: " + m_modbusSlave->errorString());
+            m_modbusRtuSlave->setConnectionParameter(QModbusDevice::SerialPortNameParameter, ui->portComboBox->currentText());
+            m_modbusRtuSlave->setConnectionParameter(QModbusDevice::SerialBaudRateParameter, 9600);
+            m_modbusRtuSlave->setConnectionParameter(QModbusDevice::SerialDataBitsParameter, QSerialPort::Data8);
+            m_modbusRtuSlave->setConnectionParameter(QModbusDevice::SerialParityParameter, QSerialPort::NoParity);
+            m_modbusRtuSlave->setConnectionParameter(QModbusDevice::SerialStopBitsParameter, QSerialPort::OneStop);
+            m_modbusRtuSlave->setServerAddress(ui->slaveIdEdit->text().toInt());
+
+            if (m_modbusRtuSlave->connectDevice()) {
+                ui->connectButton->setText("Disconnect");
+                ui->logTextEdit->append("RTU Connected successfully.");
+            } else {
+                ui->logTextEdit->append("RTU Connect failed: " + m_modbusRtuSlave->errorString());
+            }
+        }
+    } else { // TCP
+        if (!m_modbusTcpServer) {
+            m_modbusTcpServer = new QModbusTcpServer(this);
+            connect(m_modbusTcpServer, &QModbusServer::dataWritten, this, &MainWindow::onDataWritten);
+        }
+        setupModbusMap(); // Always setup map before connect
+
+        if (m_modbusTcpServer->state() == QModbusDevice::ConnectedState) {
+            m_modbusTcpServer->disconnectDevice();
+            ui->connectButton->setText("Connect");
+            ui->logTextEdit->append("TCP Disconnected.");
+        } else {
+            const QUrl url = QUrl::fromUserInput(ui->ipAddressEdit->text() + ":" + ui->portEdit->text());
+            m_modbusTcpServer->setConnectionParameter(QModbusDevice::NetworkAddressParameter, url.host());
+            m_modbusTcpServer->setConnectionParameter(QModbusDevice::NetworkPortParameter, url.port());
+            m_modbusTcpServer->setServerAddress(1); // TCP doesn't really use this but it's required
+
+            if (m_modbusTcpServer->connectDevice()) {
+                ui->connectButton->setText("Disconnect");
+                ui->logTextEdit->append("TCP Connected successfully to " + url.toString());
+            } else {
+                ui->logTextEdit->append("TCP Connect failed: " + m_modbusTcpServer->errorString());
+            }
         }
     }
 }
@@ -228,8 +300,11 @@ void MainWindow::onDataWritten(QModbusDataUnit::RegisterType table, int address,
 
     // 从Modbus Slave读取原始数据
     QVector<quint16> values(size);
+    QModbusServer *currentServer = (ui->protocolComboBox->currentIndex() == 0) ? static_cast<QModbusServer*>(m_modbusRtuSlave) : static_cast<QModbusServer*>(m_modbusTcpServer);
+    if (!currentServer) return;
+
     for(int i=0; i<size; ++i) {
-        m_modbusSlave->data(modbusStruct.regType, address + i, &values[i]);
+        currentServer->data(modbusStruct.regType, address + i, &values[i]);
     }
 
     // 将原始数据解析到m_dataMap
@@ -285,7 +360,8 @@ void MainWindow::onTableCellChanged(int row, int column)
 
 void MainWindow::updateSlaveData(quint16 address)
 {
-    if (!m_modbusSlave || !m_dataMap.contains(address)) return;
+    QModbusServer *currentServer = (ui->protocolComboBox->currentIndex() == 0) ? static_cast<QModbusServer*>(m_modbusRtuSlave) : static_cast<QModbusServer*>(m_modbusTcpServer);
+    if (!currentServer || !m_dataMap.contains(address)) return;
 
     const ModbusSturct& modbusStruct = m_dataMap.value(address);
 
@@ -305,15 +381,15 @@ void MainWindow::updateSlaveData(quint16 address)
 
     // 将组合后的值写入Modbus Slave的内部数据
     if (modbusStruct.regCount == 1) {
-        m_modbusSlave->setData(modbusStruct.regType, address, static_cast<quint16>(combinedValue));
+        currentServer->setData(modbusStruct.regType, address, static_cast<quint16>(combinedValue));
     } else if (modbusStruct.regCount == 2) {
-        m_modbusSlave->setData(modbusStruct.regType, address, static_cast<quint16>(combinedValue >> 16));
-        m_modbusSlave->setData(modbusStruct.regType, address + 1, static_cast<quint16>(combinedValue & 0xFFFF));
+        currentServer->setData(modbusStruct.regType, address, static_cast<quint16>(combinedValue >> 16));
+        currentServer->setData(modbusStruct.regType, address + 1, static_cast<quint16>(combinedValue & 0xFFFF));
     } else if (modbusStruct.regCount == 4) {
-        m_modbusSlave->setData(modbusStruct.regType, address,     static_cast<quint16>(combinedValue >> 48));
-        m_modbusSlave->setData(modbusStruct.regType, address + 1, static_cast<quint16>((combinedValue >> 32) & 0xFFFF));
-        m_modbusSlave->setData(modbusStruct.regType, address + 2, static_cast<quint16>((combinedValue >> 16) & 0xFFFF));
-        m_modbusSlave->setData(modbusStruct.regType, address + 3, static_cast<quint16>(combinedValue & 0xFFFF));
+        currentServer->setData(modbusStruct.regType, address,     static_cast<quint16>(combinedValue >> 48));
+        currentServer->setData(modbusStruct.regType, address + 1, static_cast<quint16>((combinedValue >> 32) & 0xFFFF));
+        currentServer->setData(modbusStruct.regType, address + 2, static_cast<quint16>((combinedValue >> 16) & 0xFFFF));
+        currentServer->setData(modbusStruct.regType, address + 3, static_cast<quint16>(combinedValue & 0xFFFF));
     }
 }
 
@@ -325,4 +401,23 @@ void MainWindow::updateUI(const QString& key, const QVariant& value)
     bool oldSignalsState = ui->registerTableWidget->blockSignals(true);
     ui->registerTableWidget->item(row, 4)->setText(value.toString());
     ui->registerTableWidget->blockSignals(oldSignalsState);
+}
+
+void MainWindow::onProtocolChanged(int index)
+{
+    ui->connectionStackedWidget->setCurrentIndex(index);
+}
+
+void MainWindow::onConfigFileChanged(const QString &fileName)
+{
+    if (fileName.isEmpty()) return;
+    QString configPath = QDir(QCoreApplication::applicationDirPath()).filePath("config/" + fileName);
+    initDataMap(configPath);
+    setupUIFromDataMap();
+    // After loading data, setup the modbus map for the currently selected protocol
+    if (ui->protocolComboBox->currentIndex() == 0 && m_modbusRtuSlave) {
+        setupModbusMap();
+    } else if (ui->protocolComboBox->currentIndex() == 1 && m_modbusTcpServer) {
+        setupModbusMap();
+    }
 }
