@@ -309,10 +309,6 @@ QVector<quint16> LSJDevice::getWriteRegValues(quint16 qRegAddr)
                 quint16 qPos = mList.at(j).bitpos;
                 quint16 qBitLen = mList.at(j).length;
                 quint16 setValue = mList.at(j).value;
-                //                if(qRegAddr == 43011)
-                //                    setValue = QRandomGenerator::global()->generate() % 2;
-                //                if(qRegAddr == 43031)
-                //                    setValue = QRandomGenerator::global()->generate() % 65536;
                 quint16 qNewValue = 0;
                 setParamValue16(qRegValue, qPos, qBitLen, setValue, qNewValue);
                 qRegValue  = qNewValue;
@@ -324,8 +320,6 @@ QVector<quint16> LSJDevice::getWriteRegValues(quint16 qRegAddr)
             if(mList.size() > 0)
             {
                 quint32 setValue = mList.at(0).value;
-                //                if(qRegAddr == 43035)
-                //                    setValue = QRandomGenerator::global()->generate() % 999999;
                 quint16 qNewValueHigh = setValue >> 16;
                 quint16 qNewValueLow = setValue;
                 regValuesList.append(qNewValueHigh);
@@ -337,8 +331,6 @@ QVector<quint16> LSJDevice::getWriteRegValues(quint16 qRegAddr)
             if(mList.size() > 0)
             {
                 quint64 setValue = mList.at(0).value;
-                //                if(qRegAddr == 43051)
-                //                    setValue = QRandomGenerator::global()->generate() % 999999999;
                 quint16 qNewValueHigh2 = setValue >> 16*3;
                 quint16 qNewValueHigh1 = setValue >> 16*2;
                 quint16 qNewValueLow2 = setValue >> 16;

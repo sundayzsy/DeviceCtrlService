@@ -3,24 +3,14 @@
 
 #include <QMainWindow>
 #include <QModbusDataUnit>
-#include <QJsonObject>
-#include <QJsonArray>
+#include "src/core/modbusdata.h" // 包含共享的数据结构
+#include <QMap>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
 
 class QModbusRtuSerialSlave;
-
-struct RegisterDefinition {
-    int address;
-    QString key;
-    QString name;
-    int length;
-    int bitpos;
-    QString access;
-    QModbusDataUnit::RegisterType type;
-};
 
 class MainWindow : public QMainWindow
 {
@@ -36,14 +26,19 @@ private slots:
     void onTableCellChanged(int row, int column);
 
 private:
-    void loadConfig(const QString& path);
-    void setupRegistersFromConfig();
+    void initDataMap(const QString& path);
+    void setupUIFromDataMap();
     void initSerialPorts();
-    const RegisterDefinition* findRegister(int address, QModbusDataUnit::RegisterType table) const;
+    void setupModbusMap();
+    void updateSlaveData(quint16 address);
+    void updateUI(const QString& key, const QVariant& value);
 
 
     Ui::MainWindow *ui;
     QModbusRtuSerialSlave *m_modbusSlave;
-    QList<RegisterDefinition> m_registers;
+    QMap<quint16, ModbusSturct> m_dataMap;
+    QMap<QString, QPair<quint16, int>> m_keyIndexMap;
+    QMap<QString, int> m_uiRowMap; // key -> row index in UI table
+    QList<quint16> m_addressOrder; // 存储地址的原始顺序
 };
 #endif // MAINWINDOW_H
