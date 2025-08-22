@@ -47,9 +47,16 @@ MainWindow::MainWindow(QWidget *parent)
     ui->splitter->setStretchFactor(1, 3); // 右侧宽度是左侧的3倍
 
     // 设置数据表格
-    ui->dataTableWidget->setColumnCount(5);
-    ui->dataTableWidget->setHorizontalHeaderLabels({"Address", "Key", "Name", "Access", "Value"});
-    ui->dataTableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    ui->dataTableWidget->setColumnCount(7);
+    ui->dataTableWidget->setHorizontalHeaderLabels({"Address", "Bitpos", "Length", "Key", "Name", "Access", "Value"});
+    QHeaderView* header = ui->dataTableWidget->horizontalHeader();
+    header->setSectionResizeMode(0, QHeaderView::ResizeToContents); // Address
+    header->setSectionResizeMode(1, QHeaderView::ResizeToContents); // Bitpos
+    header->setSectionResizeMode(2, QHeaderView::ResizeToContents); // Length
+    header->setSectionResizeMode(3, QHeaderView::Stretch);          // Key
+    header->setSectionResizeMode(4, QHeaderView::Stretch);          // Name
+    header->setSectionResizeMode(5, QHeaderView::ResizeToContents); // Access
+    header->setSectionResizeMode(6, QHeaderView::Stretch);          // Value
 
     // 连接信号和槽
     connect(ui->dataTableWidget, &QTableWidget::cellChanged, this, &MainWindow::onTableCellChanged);
@@ -144,11 +151,15 @@ void MainWindow::updateDataTable(const QString& deviceId)
         QString key = obj["key"].toString();
         QString name = obj["name"].toString();
         QString access = obj["access"].toString();
+        int bitpos = obj["bitpos"].toInt();
+        int length = obj["length"].toInt();
 
         int newRow = ui->dataTableWidget->rowCount();
         ui->dataTableWidget->insertRow(newRow);
 
         auto addressItem = new QTableWidgetItem(QString::number(address));
+        auto bitposItem = new QTableWidgetItem(QString::number(bitpos));
+        auto lengthItem = new QTableWidgetItem(QString::number(length));
         auto keyItem = new QTableWidgetItem(key);
         auto nameItem = new QTableWidgetItem(name);
         auto accessItem = new QTableWidgetItem(access);
@@ -156,6 +167,8 @@ void MainWindow::updateDataTable(const QString& deviceId)
 
         // 设置只读属性
         addressItem->setFlags(addressItem->flags() & ~Qt::ItemIsEditable);
+        bitposItem->setFlags(bitposItem->flags() & ~Qt::ItemIsEditable);
+        lengthItem->setFlags(lengthItem->flags() & ~Qt::ItemIsEditable);
         keyItem->setFlags(keyItem->flags() & ~Qt::ItemIsEditable);
         nameItem->setFlags(nameItem->flags() & ~Qt::ItemIsEditable);
         accessItem->setFlags(accessItem->flags() & ~Qt::ItemIsEditable);
@@ -164,10 +177,12 @@ void MainWindow::updateDataTable(const QString& deviceId)
         }
 
         ui->dataTableWidget->setItem(newRow, 0, addressItem);
-        ui->dataTableWidget->setItem(newRow, 1, keyItem);
-        ui->dataTableWidget->setItem(newRow, 2, nameItem);
-        ui->dataTableWidget->setItem(newRow, 3, accessItem);
-        ui->dataTableWidget->setItem(newRow, 4, valueItem);
+        ui->dataTableWidget->setItem(newRow, 1, bitposItem);
+        ui->dataTableWidget->setItem(newRow, 2, lengthItem);
+        ui->dataTableWidget->setItem(newRow, 3, keyItem);
+        ui->dataTableWidget->setItem(newRow, 4, nameItem);
+        ui->dataTableWidget->setItem(newRow, 5, accessItem);
+        ui->dataTableWidget->setItem(newRow, 6, valueItem);
         m_dataRowMap[key] = newRow;
     }
     m_isInternalChange = false;
@@ -185,15 +200,15 @@ void MainWindow::onDeviceDataUpdated(const QString& deviceId, const QString& key
     if (m_dataRowMap.contains(key)) {
         int row = m_dataRowMap[key];
         m_isInternalChange = true;
-        if(ui->dataTableWidget->item(row, 4))
-             ui->dataTableWidget->item(row, 4)->setText(value.toString());
+        if(ui->dataTableWidget->item(row, 6))
+             ui->dataTableWidget->item(row, 6)->setText(value.toString());
         m_isInternalChange = false;
     }
 }
 
 void MainWindow::onTableCellChanged(int row, int column)
 {
-    if (m_isInternalChange || column != 4)
+    if (m_isInternalChange || column != 6)
         return;
 
     QList<QTableWidgetItem*> selectedItems = m_deviceTableWidget->selectedItems();
@@ -202,8 +217,8 @@ void MainWindow::onTableCellChanged(int row, int column)
 
     QString currentDeviceId = m_deviceTableWidget->item(selectedItems.first()->row(), 0)->text();
 
-    QTableWidgetItem* keyItem = ui->dataTableWidget->item(row, 1);
-    QTableWidgetItem* valueItem = ui->dataTableWidget->item(row, 4);
+    QTableWidgetItem* keyItem = ui->dataTableWidget->item(row, 3);
+    QTableWidgetItem* valueItem = ui->dataTableWidget->item(row, 6);
 
     if (!keyItem || !valueItem)
         return;

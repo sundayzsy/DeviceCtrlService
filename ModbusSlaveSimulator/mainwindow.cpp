@@ -142,9 +142,16 @@ void MainWindow::initDataMap(const QString& path)
 
 void MainWindow::setupUIFromDataMap()
 {
-    ui->registerTableWidget->setColumnCount(5);
-    ui->registerTableWidget->setHorizontalHeaderLabels({"Address", "Key", "Name", "Access", "Value"});
-    ui->registerTableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    ui->registerTableWidget->setColumnCount(7);
+    ui->registerTableWidget->setHorizontalHeaderLabels({"Address", "Bitpos", "Length", "Key", "Name", "Access", "Value"});
+    QHeaderView* header = ui->registerTableWidget->horizontalHeader();
+    header->setSectionResizeMode(0, QHeaderView::ResizeToContents); // Address
+    header->setSectionResizeMode(1, QHeaderView::ResizeToContents); // Bitpos
+    header->setSectionResizeMode(2, QHeaderView::ResizeToContents); // Length
+    header->setSectionResizeMode(3, QHeaderView::Stretch);          // Key
+    header->setSectionResizeMode(4, QHeaderView::Stretch);          // Name
+    header->setSectionResizeMode(5, QHeaderView::ResizeToContents); // Access
+    header->setSectionResizeMode(6, QHeaderView::Stretch);          // Value
 
     // 按照 m_addressOrder 中记录的顺序来填充UI
     for (quint16 address : m_addressOrder) {
@@ -154,12 +161,16 @@ void MainWindow::setupUIFromDataMap()
             ui->registerTableWidget->insertRow(row);
 
             auto* addressItem = new QTableWidgetItem(QString::number(param.address));
+            auto* bitposItem = new QTableWidgetItem(QString::number(param.bitpos));
+            auto* lengthItem = new QTableWidgetItem(QString::number(param.length));
             auto* keyItem = new QTableWidgetItem(param.key);
             auto* nameItem = new QTableWidgetItem(param.name);
             auto* accessItem = new QTableWidgetItem(param.access);
             auto* valueItem = new QTableWidgetItem(QString::number(param.value));
 
             addressItem->setFlags(addressItem->flags() & ~Qt::ItemIsEditable);
+            bitposItem->setFlags(bitposItem->flags() & ~Qt::ItemIsEditable);
+            lengthItem->setFlags(lengthItem->flags() & ~Qt::ItemIsEditable);
             keyItem->setFlags(keyItem->flags() & ~Qt::ItemIsEditable);
             nameItem->setFlags(nameItem->flags() & ~Qt::ItemIsEditable);
             accessItem->setFlags(accessItem->flags() & ~Qt::ItemIsEditable);
@@ -170,10 +181,12 @@ void MainWindow::setupUIFromDataMap()
             }
 
             ui->registerTableWidget->setItem(row, 0, addressItem);
-            ui->registerTableWidget->setItem(row, 1, keyItem);
-            ui->registerTableWidget->setItem(row, 2, nameItem);
-            ui->registerTableWidget->setItem(row, 3, accessItem);
-            ui->registerTableWidget->setItem(row, 4, valueItem);
+            ui->registerTableWidget->setItem(row, 1, bitposItem);
+            ui->registerTableWidget->setItem(row, 2, lengthItem);
+            ui->registerTableWidget->setItem(row, 3, keyItem);
+            ui->registerTableWidget->setItem(row, 4, nameItem);
+            ui->registerTableWidget->setItem(row, 5, accessItem);
+            ui->registerTableWidget->setItem(row, 6, valueItem);
 
             m_uiRowMap[param.key] = row;
         }
@@ -341,9 +354,9 @@ void MainWindow::onDataWritten(QModbusDataUnit::RegisterType table, int address,
 
 void MainWindow::onTableCellChanged(int row, int column)
 {
-    if (column != 4) return; // Value column
+    if (column != 6) return; // Value column
 
-    QString key = ui->registerTableWidget->item(row, 1)->text();
+    QString key = ui->registerTableWidget->item(row, 3)->text();
     if (!m_keyIndexMap.contains(key)) return;
 
     QPair<quint16, int> indices = m_keyIndexMap.value(key);
@@ -351,7 +364,7 @@ void MainWindow::onTableCellChanged(int row, int column)
     int index = indices.second;
 
     bool ok;
-    quint64 newValue = ui->registerTableWidget->item(row, 4)->text().toULongLong(&ok);
+    quint64 newValue = ui->registerTableWidget->item(row, 6)->text().toULongLong(&ok);
     if (ok) {
         m_dataMap[address].spList[index].value = newValue;
         updateSlaveData(address);
@@ -400,7 +413,7 @@ void MainWindow::updateUI(const QString& key, const QVariant& value)
     int row = m_uiRowMap[key];
 
     bool oldSignalsState = ui->registerTableWidget->blockSignals(true);
-    ui->registerTableWidget->item(row, 4)->setText(value.toString());
+    ui->registerTableWidget->item(row, 6)->setText(value.toString());
     ui->registerTableWidget->blockSignals(oldSignalsState);
 }
 
