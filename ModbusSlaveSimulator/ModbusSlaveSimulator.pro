@@ -16,3 +16,9 @@ HEADERS  += mainwindow.h \
 INCLUDEPATH += $$PWD/../
 
 FORMS    += mainwindow.ui
+
+# 强制MSVC编译器使用UTF-8编码来解析源文件和执行字符集
+win32-msvc {
+    QMAKE_CFLAGS += /utf-8
+    QMAKE_CXXFLAGS += /utf-8
+}

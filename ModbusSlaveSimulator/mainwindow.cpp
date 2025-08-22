@@ -86,6 +86,7 @@ void MainWindow::initDataMap(const QString& path)
         QJsonObject tcpParams = rootObj.value("tcp_params").toObject();
         ui->ipAddressEdit->setText(tcpParams.value("ip_address").toString("127.0.0.1"));
         ui->portEdit->setText(QString::number(tcpParams.value("port").toInt(502)));
+        ui->tcpSlaveIdEdit->setText(QString::number(rootObj.value("server_address").toInt(1)));
     } else {
         ui->protocolComboBox->setCurrentIndex(0);
         QJsonObject rtuParams = rootObj.value("rtu_params").toObject();
@@ -269,7 +270,7 @@ void MainWindow::on_connectButton_clicked()
             const QUrl url = QUrl::fromUserInput(ui->ipAddressEdit->text() + ":" + ui->portEdit->text());
             m_modbusTcpServer->setConnectionParameter(QModbusDevice::NetworkAddressParameter, url.host());
             m_modbusTcpServer->setConnectionParameter(QModbusDevice::NetworkPortParameter, url.port());
-            m_modbusTcpServer->setServerAddress(1); // TCP doesn't really use this but it's required
+            m_modbusTcpServer->setServerAddress(ui->tcpSlaveIdEdit->text().toInt());
 
             if (m_modbusTcpServer->connectDevice()) {
                 ui->connectButton->setText("Disconnect");

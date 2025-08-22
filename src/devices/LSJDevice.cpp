@@ -158,13 +158,13 @@ void LSJDevice::onReadReady()
     }
     else if (reply->error() == QModbusDevice::ProtocolError)
     {
-        qDebug()<<QString("Read response ProtocolError: %1 (Mobus exception: 0x%2)")
+        qDebug()<<QString("LSJDevice：Read response ProtocolError: %1 (Mobus exception: 0x%2)")
                         .arg(reply->errorString())
                         .arg(reply->rawResult().exceptionCode());
     }
     else
     {
-        qDebug()<<QString("Read response error: %1 (code: 0x%2)")
+        qDebug()<<QString("LSJDevice：Read response error: %1 (code: 0x%2)")
                         .arg(reply->errorString())
                         .arg(reply->error());
     }
@@ -407,13 +407,13 @@ void LSJDevice::sendWriteRequest(const ModbusSturct &infoStruct)
             connect(reply, &QModbusReply::finished, this, [this, reply](){
                 if (reply->error() == QModbusDevice::ProtocolError)
                 {
-                    qDebug()<<QString("Write response error: %1 (Mobus exception: 0x%2)")
+                    qDebug()<<QString("LSJDevice：Write response error: %1 (Mobus exception: 0x%2)")
                                     .arg(reply->errorString())
                                     .arg(reply->rawResult().exceptionCode());
                 }
                 else if (reply->error() != QModbusDevice::NoError)
                 {
-                    qDebug()<<QString("Write response error: %1 (code: 0x%2)")
+                    qDebug()<<QString("LSJDevice：Write response error: %1 (code: 0x%2)")
                                     .arg(reply->errorString())
                                     .arg(reply->error(),-1,16);
                 }
@@ -428,7 +428,7 @@ void LSJDevice::sendWriteRequest(const ModbusSturct &infoStruct)
     }
     else
     {
-        qDebug()<<"Write error: " + m_modbusDevice->errorString();
+        qDebug()<<"LSJDevice：Write error: " + m_modbusDevice->errorString();
     }
 }
 

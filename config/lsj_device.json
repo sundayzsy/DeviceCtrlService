@@ -14,6 +14,7 @@
     "retry_count": 0
   },
   "server_address": 1,
+  "modbus_offset": 0,
   "registers": [
     { "address": 128,	"key": "LSJ_WaterPump_Status", "name": "水泵状态",			"length": 1, "bitpos":0, "access": "read" ,"regtype":"coil"},
     { "address": 129,	"key": "LSJ_Compressor_Status", "name": "压缩机状态", 		"length": 1, "bitpos":0, "access": "read" ,"regtype":"coil"},
@@ -26,22 +27,9 @@
     { "address": 12,	"key": "LSJ_CYTempTT_Status", 	"name": "出液温度探头故障", 	"length": 1, "bitpos":0, "access": "read" ,"regtype":"coil"},
     { "address": 14,	"key": "LSJ_CYTempLow_Status", "name": "出液温度过低", 		"length": 1, "bitpos":0, "access": "read" ,"regtype":"coil"},
     { "address": 15,	"key": "LSJ_YTTempHigh_Status", "name": "液体温度过高", 		"length": 1, "bitpos":0, "access": "read" ,"regtype":"coil"},
-    { "address": 20,	"key": "LSJ_NZXX_Status", 		"name": "内置相序报警", 		"length": 1, "bitpos":0, "access": "read" ,"regtype":"coil"},
     { "address": 176,	"key": "LSJ_LSJSwitch_Ctrl", 	"name": "冷水机开关机控制", 	"length": 1, "bitpos":0, "access": "write" ,"regtype":"coil"},
 	{ "address": 3,		"key": "LSJ_LSJTemp_Ctrl", 		"name": "冷水机预设温度",		"length": 16,"bitpos":0, "access": "write" ,"regtype":"holding_register"},
 	{ "address": 700,	"key": "LSJ_YTTemp_Status",		 "name": "液体温度",		    "length": 16,"bitpos":0, "access": "read" ,"regtype":"holding_register"},
-	{ "address": 701,	"key": "LSJ_EnvTemp_Status", 	"name": "环境温度", 			"length": 16,"bitpos":0, "access": "read" ,"regtype":"holding_register"},
-	{ "address": 600,	"key": "LSJ_read_pos0", 		 "name": "读0位", 			"length": 1,"bitpos":0, "access": "read" ,"regtype":"holding_register"},
-	{ "address": 600,	"key": "LSJ_read_pos1", 		 "name": "读1位", 			"length": 1,"bitpos":1, "access": "read" ,"regtype":"holding_register"},
-	{ "address": 600,	"key": "LSJ_read_pos2", 		 "name": "读2位", 			"length": 1,"bitpos":2, "access": "read" ,"regtype":"holding_register"},
-	{ "address": 610,	"key": "LSJ_write_pos0", 		 "name": "写0位", 			"length": 1,"bitpos":0, "access": "write" ,"regtype":"holding_register"},
-	{ "address": 610,	"key": "LSJ_write_pos1", 		 "name": "写1位", 			"length": 1,"bitpos":1, "access": "write" ,"regtype":"holding_register"},
-	{ "address": 610,	"key": "LSJ_write_pos2", 		 "name": "写2位", 			"length": 1,"bitpos":2, "access": "write" ,"regtype":"holding_register"},
-	{ "address": 140,	"key": "LSJ_T1", 				"name": "离散", 	            "length": 1, "bitpos":0, "access": "read" ,"regtype":"discrete_input"},
-	{ "address": 141,	"key": "LSJ_T2", 				"name": "离散寄存器", 	    "length": 16, "bitpos":0, "access": "read" ,"regtype":"input_register"},
-	{ "address": 400,	"key": "LSJ_Test1_Status", 	     "name": "32位读测试", 		"length": 32,"bitpos":0, "access": "read" ,"regtype":"holding_register"},
-	{ "address": 450,	"key": "LSJ_Test2_Ctrl", 		"name": "32位写测试", 		"length": 32,"bitpos":0, "access": "write" ,"regtype":"holding_register"},
-	{ "address": 500,	"key": "LSJ_Test3_Status", 		"name": "64位读测试", 		"length": 64,"bitpos":0, "access": "read" ,"regtype":"holding_register"},
-	{ "address": 550,	"key": "LSJ_Test4_Ctrl", 		"name": "64位写测试", 		"length": 64,"bitpos":0, "access": "write" ,"regtype":"holding_register"}
+	{ "address": 701,	"key": "LSJ_EnvTemp_Status", 	"name": "环境温度", 			"length": 16,"bitpos":0, "access": "read" ,"regtype":"holding_register"}
   ]
 }
