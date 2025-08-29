@@ -7,6 +7,7 @@
 #include "Device.h"
 #include "devices/LSJDevice.h"
 #include "devices/JGQDevice.h"
+#include "devices/JGTDevice.h"
 
 DeviceManager::DeviceManager(QObject *parent)
     : QObject(parent)
@@ -32,6 +33,8 @@ bool DeviceManager::addDevice(const QJsonObject& config)
         device = new LSJDevice(id, config);
     } else if (protocol == "modbus_tcp") {
         device = new JGQDevice(id, config);
+    } else if (protocol == "tcp_socket") {
+        device = new JGTDevice(id, config);
     } else {
         // TODO: Add support for other protocols
     }

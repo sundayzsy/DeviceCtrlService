@@ -1,0 +1,18 @@
+{
+  "device_id": "jgt_001",
+  "device_name": "激光头",
+  "protocol": "tcp_socket",
+  "tcp_params": {
+    "ip_address": "127.0.0.1",
+    "port": 8888
+  },
+  "protocol_params": {
+    "response_timeout": 3000,
+    "retry_count": 0
+  },
+  "registers": [
+    { "key": "JGT_LaserSpeed", "name": "激光速度", "command": "DSPEED", "access": "read-write" },
+    { "key": "JGT_LaserPower", "name": "激光功率", "command": "DPOWER", "access": "read-write" },
+    { "key": "JGT_LaserFreq", "name": "激光频率", "command": "DFREQ", "access": "read-write" }
+  ]
+}

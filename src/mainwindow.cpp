@@ -1,5 +1,6 @@
 ﻿#include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include <QMetaObject>
 #include "core/DeviceManager.h"
 #include "core/ThreadManager.h"
 #include "core/DataManager.h"
@@ -16,6 +17,7 @@
 #include <QCoreApplication>
 #include <QDir>
 #include <QTableWidget>
+#include <QTime>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -23,28 +25,23 @@ MainWindow::MainWindow(QWidget *parent)
     , m_deviceManager(new DeviceManager(this))
     , m_threadManager(new ThreadManager(this))
     , m_dataManager(new DataManager(this))
-    , m_deviceTableWidget(new QTableWidget(this))
     , m_isInternalChange(false)
 {
     ui->setupUi(this);
 
-    // 创建并配置新的设备列表表格
-    m_deviceTableWidget->setColumnCount(2);
-    m_deviceTableWidget->setHorizontalHeaderLabels({"Device ID", "Status"});
-    m_deviceTableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-    m_deviceTableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
-    m_deviceTableWidget->setSelectionMode(QAbstractItemView::SingleSelection);
-    m_deviceTableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
-
-    // 替换旧的 QListWidget
-    QWidget* oldListWidget = ui->splitter->widget(0);
-    oldListWidget->setParent(nullptr);
-    delete oldListWidget;
-    ui->splitter->insertWidget(0, m_deviceTableWidget);
-    ui->deviceListWidget = nullptr; // 避免悬空指针
+    setWindowTitle("设备通信控制服务系统");
+    // 配置新的设备列表表格
+    ui->deviceTableWidget->setColumnCount(2);
+    ui->deviceTableWidget->setHorizontalHeaderLabels({"Device ID", "Status"});
+    ui->deviceTableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    ui->deviceTableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
+    ui->deviceTableWidget->setSelectionMode(QAbstractItemView::SingleSelection);
+    ui->deviceTableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
 
     ui->splitter->setStretchFactor(0, 1); // 左侧比例为1
     ui->splitter->setStretchFactor(1, 3); // 右侧宽度是左侧的3倍
+
+    ui->stackedWidget->setCurrentIndex(0);
 
     // 设置数据表格
     ui->dataTableWidget->setColumnCount(7);
@@ -60,13 +57,14 @@ MainWindow::MainWindow(QWidget *parent)
 
     // 连接信号和槽
     connect(ui->dataTableWidget, &QTableWidget::cellChanged, this, &MainWindow::onTableCellChanged);
-    connect(m_deviceTableWidget, &QTableWidget::itemSelectionChanged, this, &MainWindow::onDeviceSelectionChanged);
+    connect(ui->deviceTableWidget, &QTableWidget::itemSelectionChanged, this, &MainWindow::onDeviceSelectionChanged);
     connect(m_dataManager, &DataManager::dataUpdated, this, &MainWindow::onDeviceDataUpdated);
 
     // 自动加载默认设备
     QString configPath = QCoreApplication::applicationDirPath() + "/config/";
     loadDevice(QDir::toNativeSeparators(configPath + "lsj_device.json"));
     loadDevice(QDir::toNativeSeparators(configPath + "jgq_device.json"));
+    loadDevice(QDir::toNativeSeparators(configPath + "jgt_device.json"));
 }
 
 MainWindow::~MainWindow()
@@ -104,21 +102,22 @@ void MainWindow::loadDevice(const QString& filePath)
         if (device) {
             m_threadManager->startDeviceThread(device);
             
-            int newRow = m_deviceTableWidget->rowCount();
-            m_deviceTableWidget->insertRow(newRow);
+            int newRow = ui->deviceTableWidget->rowCount();
+            ui->deviceTableWidget->insertRow(newRow);
             m_deviceRowMap[deviceId] = newRow;
 
             auto idItem = new QTableWidgetItem(deviceId);
             auto statusItem = new QTableWidgetItem("Connecting...");
-            m_deviceTableWidget->setItem(newRow, 0, idItem);
-            m_deviceTableWidget->setItem(newRow, 1, statusItem);
+            ui->deviceTableWidget->setItem(newRow, 0, idItem);
+            ui->deviceTableWidget->setItem(newRow, 1, statusItem);
 
             connect(device, &Device::dataUpdated, m_dataManager, &DataManager::updateDeviceData);
             connect(device, &Device::connectedChanged, this, &MainWindow::onDeviceConnectionChanged);
+            connect(device, &Device::sig_printLog, this, &MainWindow::onPrintLog);
 
             // 如果这是第一个设备，则立即显示其数据
-            if (m_deviceTableWidget->rowCount() == 1) {
-                m_deviceTableWidget->selectRow(0);
+            if (ui->deviceTableWidget->rowCount() == 1) {
+                ui->deviceTableWidget->selectRow(0);
             }
         }
     }
@@ -126,10 +125,18 @@ void MainWindow::loadDevice(const QString& filePath)
 
 void MainWindow::onDeviceSelectionChanged()
 {
-    QList<QTableWidgetItem*> selectedItems = m_deviceTableWidget->selectedItems();
+    QList<QTableWidgetItem*> selectedItems = ui->deviceTableWidget->selectedItems();
     if (!selectedItems.isEmpty()) {
-        QString deviceId = m_deviceTableWidget->item(selectedItems.first()->row(), 0)->text();
-        updateDataTable(deviceId);
+        QString deviceId = ui->deviceTableWidget->item(selectedItems.first()->row(), 0)->text();
+        if(deviceId == "jgq_001" || deviceId == "lsj_001" )
+        {
+            ui->stackedWidget->setCurrentIndex(0);
+            updateDataTable(deviceId);
+        }
+        else if(deviceId == "jgt_001")
+        {
+            ui->stackedWidget->setCurrentIndex(1);
+        }
     }
 }
 
@@ -188,12 +195,22 @@ void MainWindow::updateDataTable(const QString& deviceId)
     m_isInternalChange = false;
 }
 
+QByteArray MainWindow::toHex(const QByteArray &bytes)
+{
+    QByteArray hexBytes;
+    const char *pBytes = bytes.data();
+    for(int i = 0;i < bytes.size();i++) {
+        hexBytes += QByteArray(1,(uchar)pBytes[i]).toHex().toUpper() + " ";
+    }
+    return hexBytes;
+}
+
 
 void MainWindow::onDeviceDataUpdated(const QString& deviceId, const QString& key, const QVariant& value)
 {
     // 仅当数据显示的是当前活动设备时才更新
-    QList<QTableWidgetItem*> selectedItems = m_deviceTableWidget->selectedItems();
-    if (selectedItems.isEmpty() || m_deviceTableWidget->item(selectedItems.first()->row(), 0)->text() != deviceId) {
+    QList<QTableWidgetItem*> selectedItems = ui->deviceTableWidget->selectedItems();
+    if (selectedItems.isEmpty() || ui->deviceTableWidget->item(selectedItems.first()->row(), 0)->text() != deviceId) {
         return;
     }
 
@@ -211,11 +228,11 @@ void MainWindow::onTableCellChanged(int row, int column)
     if (m_isInternalChange || column != 6)
         return;
 
-    QList<QTableWidgetItem*> selectedItems = m_deviceTableWidget->selectedItems();
+    QList<QTableWidgetItem*> selectedItems = ui->deviceTableWidget->selectedItems();
     if (selectedItems.isEmpty())
         return;
 
-    QString currentDeviceId = m_deviceTableWidget->item(selectedItems.first()->row(), 0)->text();
+    QString currentDeviceId = ui->deviceTableWidget->item(selectedItems.first()->row(), 0)->text();
 
     QTableWidgetItem* keyItem = ui->dataTableWidget->item(row, 3);
     QTableWidgetItem* valueItem = ui->dataTableWidget->item(row, 6);
@@ -228,7 +245,8 @@ void MainWindow::onTableCellChanged(int row, int column)
 
     Device* device = m_deviceManager->getDevice(currentDeviceId);
     if (device) {
-        device->writeData2Device(key, value);
+        QMetaObject::invokeMethod(device, "writeData2Device", Qt::QueuedConnection,
+                                  Q_ARG(QString, key), Q_ARG(QString, value));
     }
 }
 
@@ -236,11 +254,46 @@ void MainWindow::onDeviceConnectionChanged(const QString& deviceId, bool connect
 {
     if (m_deviceRowMap.contains(deviceId)) {
         int row = m_deviceRowMap[deviceId];
-        QTableWidgetItem* statusItem = m_deviceTableWidget->item(row, 1);
+        QTableWidgetItem* statusItem = ui->deviceTableWidget->item(row, 1);
         if (statusItem) {
             statusItem->setText(connected ? "Connected" : "Disconnected");
             statusItem->setForeground(connected ? Qt::green : Qt::red);
         }
+    }
+}
+
+void MainWindow::on_sendBtn_clicked()
+{
+    QList<QTableWidgetItem*> selectedItems = ui->deviceTableWidget->selectedItems();
+    if (selectedItems.isEmpty())
+        return;
+
+    QString currentDeviceId = ui->deviceTableWidget->item(selectedItems.first()->row(), 0)->text();
+    Device* device = m_deviceManager->getDevice(currentDeviceId);
+    if (device) {
+        QMetaObject::invokeMethod(device, "writeText2Device", Qt::QueuedConnection,
+                                  Q_ARG(QString, ui->sendEdit->toPlainText()));
+    }
+}
+
+void MainWindow::onPrintLog(const QByteArray &bytes, bool isWrite)
+{
+    if(bytes.isEmpty())
+        return;
+
+    if(isWrite)
+    {
+        ui->logEdit->appendPlainText(QTime::currentTime().toString(tr("hh:mm:ss")));
+        ui->logEdit->appendPlainText(QString(tr("Send(text): ")) + QString::fromUtf8(bytes));
+        ui->logEdit->appendPlainText(QString(tr("Send(hex ): ")) + toHex(bytes));
+        ui->logEdit->appendPlainText(QString(" "));
+    }
+    else
+    {
+        ui->logEdit->appendPlainText(QTime::currentTime().toString(tr("hh:mm:ss")));
+        ui->logEdit->appendPlainText(QString(tr("Recv(text): ")) + QString::fromUtf8(bytes));
+        ui->logEdit->appendPlainText(QString(tr("Recv(hex ): ")) + toHex(bytes));
+        ui->logEdit->appendPlainText(QString(" "));
     }
 }
 

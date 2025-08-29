@@ -20,8 +20,7 @@
       */
      explicit Device(const QString& id, QObject *parent = nullptr);
      virtual ~Device();
- 
-     virtual void writeData2Device(const QString &key,const QString &value) = 0;
+
      /**
       * @brief 返回设备ID
       */
@@ -50,6 +49,19 @@
  
  public slots:
      /**
+      * @brief 将文本数据写入设备。必须在子类中实现。
+      * @param text 要写入的文本
+      */
+     virtual void writeText2Device(const QString &text);
+
+     /**
+      * @brief 根据键值对写入数据。必须在子类中实现。
+      * @param key 数据的键
+      * @param value 要写入的值
+      */
+     virtual void writeData2Device(const QString &key,const QString &value) = 0;
+
+     /**
       * @brief 停止设备的工作。此槽函数设计为在设备所属线程中被调用。
       *        主要用于在程序退出前，安全地停止设备内部的定时器等资源。
       */
@@ -75,6 +87,12 @@
       * @param value 数据的新值
       */
      void dataUpdated(const QString& deviceId, const QString& key, const QVariant& value);
+
+     /**
+      * @brief 写日志
+      * @param bytes 数据
+      */
+     void sig_printLog(const QByteArray &bytes, bool isWrite);
  
  protected:
      /**

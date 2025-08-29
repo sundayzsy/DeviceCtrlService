@@ -15,6 +15,11 @@
  Device::~Device()
  {
  }
+
+ void Device::writeText2Device(const QString &text)
+ {
+
+ }
  
  QString Device::deviceId() const
  {
