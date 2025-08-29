@@ -17,6 +17,7 @@
 #include <QCoreApplication>
 #include <QDir>
 #include <QTableWidget>
+#include <QPushButton>
 #include <QTime>
 
 MainWindow::MainWindow(QWidget *parent)
@@ -31,15 +32,17 @@ MainWindow::MainWindow(QWidget *parent)
 
     setWindowTitle("设备通信控制服务系统");
     // 配置新的设备列表表格
-    ui->deviceTableWidget->setColumnCount(2);
-    ui->deviceTableWidget->setHorizontalHeaderLabels({"Device ID", "Status"});
-    ui->deviceTableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    ui->deviceTableWidget->setColumnCount(3);
+    ui->deviceTableWidget->setHorizontalHeaderLabels({"Device Name", "Status", "Action"});
+    ui->deviceTableWidget->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+    ui->deviceTableWidget->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
+    ui->deviceTableWidget->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Stretch);
     ui->deviceTableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
     ui->deviceTableWidget->setSelectionMode(QAbstractItemView::SingleSelection);
     ui->deviceTableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
 
-    ui->splitter->setStretchFactor(0, 1); // 左侧比例为1
-    ui->splitter->setStretchFactor(1, 3); // 右侧宽度是左侧的3倍
+    ui->splitter->setStretchFactor(0, 2); // 左侧比例为1
+    ui->splitter->setStretchFactor(1, 5); // 右侧宽度是左侧的3倍
 
     ui->stackedWidget->setCurrentIndex(0);
 
@@ -104,12 +107,17 @@ void MainWindow::loadDevice(const QString& filePath)
             
             int newRow = ui->deviceTableWidget->rowCount();
             ui->deviceTableWidget->insertRow(newRow);
-            m_deviceRowMap[deviceId] = newRow;
-
-            auto idItem = new QTableWidgetItem(deviceId);
-            auto statusItem = new QTableWidgetItem("Connecting...");
-            ui->deviceTableWidget->setItem(newRow, 0, idItem);
+            auto nameItem = new QTableWidgetItem(device->deviceName());
+            nameItem->setData(Qt::UserRole, deviceId);
+            auto statusItem = new QTableWidgetItem("连接中...");
+            ui->deviceTableWidget->setItem(newRow, 0, nameItem);
             ui->deviceTableWidget->setItem(newRow, 1, statusItem);
+
+            auto reconnectButton = new QPushButton("重连");
+            ui->deviceTableWidget->setCellWidget(newRow, 2, reconnectButton);
+            connect(reconnectButton, &QPushButton::clicked, this, [this, deviceId](){
+                onReconnectButtonClicked(deviceId);
+            });
 
             connect(device, &Device::dataUpdated, m_dataManager, &DataManager::updateDeviceData);
             connect(device, &Device::connectedChanged, this, &MainWindow::onDeviceConnectionChanged);
@@ -127,7 +135,8 @@ void MainWindow::onDeviceSelectionChanged()
 {
     QList<QTableWidgetItem*> selectedItems = ui->deviceTableWidget->selectedItems();
     if (!selectedItems.isEmpty()) {
-        QString deviceId = ui->deviceTableWidget->item(selectedItems.first()->row(), 0)->text();
+        QTableWidgetItem* item = selectedItems.first();
+        QString deviceId = item->data(Qt::UserRole).toString();
         if(deviceId == "jgq_001" || deviceId == "lsj_001" )
         {
             ui->stackedWidget->setCurrentIndex(0);
@@ -210,15 +219,19 @@ void MainWindow::onDeviceDataUpdated(const QString& deviceId, const QString& key
 {
     // 仅当数据显示的是当前活动设备时才更新
     QList<QTableWidgetItem*> selectedItems = ui->deviceTableWidget->selectedItems();
-    if (selectedItems.isEmpty() || ui->deviceTableWidget->item(selectedItems.first()->row(), 0)->text() != deviceId) {
+    if (selectedItems.isEmpty()) {
+        return;
+    }
+    QString currentDeviceId = selectedItems.first()->data(Qt::UserRole).toString();
+    if (currentDeviceId != deviceId) {
         return;
     }
 
     if (m_dataRowMap.contains(key)) {
-        int row = m_dataRowMap[key];
+        int dataRow = m_dataRowMap[key];
         m_isInternalChange = true;
-        if(ui->dataTableWidget->item(row, 6))
-             ui->dataTableWidget->item(row, 6)->setText(value.toString());
+        if(ui->dataTableWidget->item(dataRow, 6))
+             ui->dataTableWidget->item(dataRow, 6)->setText(value.toString());
         m_isInternalChange = false;
     }
 }
@@ -232,7 +245,7 @@ void MainWindow::onTableCellChanged(int row, int column)
     if (selectedItems.isEmpty())
         return;
 
-    QString currentDeviceId = ui->deviceTableWidget->item(selectedItems.first()->row(), 0)->text();
+    QString currentDeviceId = selectedItems.first()->data(Qt::UserRole).toString();
 
     QTableWidgetItem* keyItem = ui->dataTableWidget->item(row, 3);
     QTableWidgetItem* valueItem = ui->dataTableWidget->item(row, 6);
@@ -252,12 +265,15 @@ void MainWindow::onTableCellChanged(int row, int column)
 
 void MainWindow::onDeviceConnectionChanged(const QString& deviceId, bool connected)
 {
-    if (m_deviceRowMap.contains(deviceId)) {
-        int row = m_deviceRowMap[deviceId];
-        QTableWidgetItem* statusItem = ui->deviceTableWidget->item(row, 1);
-        if (statusItem) {
-            statusItem->setText(connected ? "Connected" : "Disconnected");
-            statusItem->setForeground(connected ? Qt::green : Qt::red);
+    for (int row = 0; row < ui->deviceTableWidget->rowCount(); ++row) {
+        QTableWidgetItem* item = ui->deviceTableWidget->item(row, 0);
+        if (item && item->data(Qt::UserRole).toString() == deviceId) {
+            QTableWidgetItem* statusItem = ui->deviceTableWidget->item(row, 1);
+            if (statusItem) {
+                statusItem->setText(connected ? "已连接" : "未连接");
+                statusItem->setForeground(connected ? (connected ? Qt::darkGreen : Qt::red) : Qt::black);
+            }
+            return; // Found and updated
         }
     }
 }
@@ -268,7 +284,7 @@ void MainWindow::on_sendBtn_clicked()
     if (selectedItems.isEmpty())
         return;
 
-    QString currentDeviceId = ui->deviceTableWidget->item(selectedItems.first()->row(), 0)->text();
+    QString currentDeviceId = selectedItems.first()->data(Qt::UserRole).toString();
     Device* device = m_deviceManager->getDevice(currentDeviceId);
     if (device) {
         QMetaObject::invokeMethod(device, "writeText2Device", Qt::QueuedConnection,
@@ -302,4 +318,25 @@ void MainWindow::closeEvent(QCloseEvent *event)
 {
     m_threadManager->cleanup();
     event->accept();
+}
+
+void MainWindow::onReconnectButtonClicked(const QString &deviceId)
+{
+    Device* device = m_deviceManager->getDevice(deviceId);
+    if (device) {
+        // 先在UI上立刻更新状态
+        for (int row = 0; row < ui->deviceTableWidget->rowCount(); ++row) {
+            QTableWidgetItem* item = ui->deviceTableWidget->item(row, 0);
+            if (item && item->data(Qt::UserRole).toString() == deviceId) {
+                QTableWidgetItem* statusItem = ui->deviceTableWidget->item(row, 1);
+                if (statusItem) {
+                    statusItem->setText("连接中...");
+                    statusItem->setForeground(Qt::black);
+                }
+                break; // Found and updated
+            }
+        }
+        // 使用invokeMethod安全地调用工作线程中的连接方法
+        QMetaObject::invokeMethod(device, "connectDevice", Qt::QueuedConnection);
+    }
 }

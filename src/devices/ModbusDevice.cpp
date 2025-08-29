@@ -8,8 +8,8 @@
 #include <QSerialPort>
 #include <QTcpSocket>
 
-ModbusDevice::ModbusDevice(const QString& id, const QJsonObject& config, QObject *parent)
-    : Device(id, parent)
+ModbusDevice::ModbusDevice(const QString& id, const QString& name, const QJsonObject& config, QObject *parent)
+    : Device(id, name, parent)
     , m_config(config)
     , m_serialPort(nullptr)
     , m_tcpSocket(nullptr)
@@ -20,33 +20,9 @@ ModbusDevice::~ModbusDevice()
 {
 }
 
-bool ModbusDevice::connectDevice()
+const QJsonObject &ModbusDevice::getConfig() const
 {
-    QString type = m_config["modbus_type"].toString();
-    if (type == "rtu") {
-        m_serialPort = new QSerialPort(this);
-        connect(m_serialPort, &QSerialPort::readyRead, this, &ModbusDevice::onReadyRead);
-        QJsonObject rtuParams = m_config["rtu_params"].toObject();
-        m_serialPort->setPortName(rtuParams["port_name"].toString());
-        m_serialPort->setBaudRate(rtuParams["baud_rate"].toInt());
-        m_serialPort->setDataBits(QSerialPort::Data8);
-        m_serialPort->setParity(QSerialPort::NoParity);
-        m_serialPort->setStopBits(QSerialPort::OneStop);
-        if (m_serialPort->open(QIODevice::ReadWrite)) {
-            setConnected(true);
-            return true;
-        }
-    } else if (type == "tcp") {
-        m_tcpSocket = new QTcpSocket(this);
-        connect(m_tcpSocket, &QTcpSocket::readyRead, this, &ModbusDevice::onReadyRead);
-        QJsonObject tcpParams = m_config["tcp_params"].toObject();
-        m_tcpSocket->connectToHost(tcpParams["ip_address"].toString(), tcpParams["port"].toInt());
-        if (m_tcpSocket->waitForConnected()) {
-            setConnected(true);
-            return true;
-        }
-    }
-    return false;
+    return m_config;
 }
 
 void ModbusDevice::disconnectDevice()

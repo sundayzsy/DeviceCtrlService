@@ -20,12 +20,13 @@ public:
      * @param config 设备的配置
      * @param parent 父对象
      */
-    explicit ModbusDevice(const QString& id, const QJsonObject& config, QObject *parent = nullptr);
+    explicit ModbusDevice(const QString& id, const QString& name, const QJsonObject& config, QObject *parent = nullptr);
     ~ModbusDevice();
 
     bool connectDevice() override;
     void disconnectDevice() override;
-    void sendData(const QByteArray& data) override;
+    const QJsonObject& getConfig() const override;
+    void sendData(const QByteArray& data);
 
 private slots:
     /**

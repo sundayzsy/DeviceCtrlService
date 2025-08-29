@@ -28,7 +28,7 @@ MainWindow::MainWindow(QWidget *parent)
     initSerialPorts();
 
     // 填充配置文件下拉列表
-    QDir configDir(QCoreApplication::applicationDirPath() + "/config");
+    QDir configDir(QCoreApplication::applicationDirPath() + "/../config");
     QStringList nameFilters;
     nameFilters << "*.json";
     QStringList configFiles = configDir.entryList(nameFilters, QDir::Files | QDir::NoDotAndDotDot);
@@ -425,7 +425,7 @@ void MainWindow::onProtocolChanged(int index)
 void MainWindow::onConfigFileChanged(const QString &fileName)
 {
     if (fileName.isEmpty()) return;
-    QString configPath = QDir(QCoreApplication::applicationDirPath()).filePath("config/" + fileName);
+    QString configPath = QCoreApplication::applicationDirPath() + "/../config/" + fileName;
     initDataMap(configPath);
     setupUIFromDataMap();
     // After loading data, setup the modbus map for the currently selected protocol

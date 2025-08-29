@@ -4,8 +4,8 @@
 #include <QJsonArray>
 #include <QJsonObject>
 
-JGTDevice::JGTDevice(const QString& id, const QJsonObject& config, QObject *parent)
-    : Device(id, parent)
+JGTDevice::JGTDevice(const QString& id, const QString& name, const QJsonObject& config, QObject *parent)
+    : Device(id, name, parent)
     , m_config(config)
     , m_tcpSocket(new QTcpSocket(this))
 {

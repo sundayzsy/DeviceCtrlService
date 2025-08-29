@@ -4,7 +4,7 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 TARGET = ModbusSlaveSimulator
 TEMPLATE = app
-DESTDIR = $$PWD/../
+DESTDIR = $$PWD/../SimulatorExe
 
 SOURCES += main.cpp\
         mainwindow.cpp

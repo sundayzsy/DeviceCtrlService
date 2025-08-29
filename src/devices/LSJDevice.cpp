@@ -10,14 +10,28 @@
 #include <QDebug>
 #include <QSerialPort>
 #include <QJsonArray>
-LSJDevice::LSJDevice(const QString& id, const QJsonObject& config, QObject *parent)
-    : Device(id, parent)
+LSJDevice::LSJDevice(const QString& id, const QString& name, const QJsonObject& config, QObject *parent)
+    : Device(id, name, parent)
     , m_config(config)
-    , m_modbusDevice(nullptr)
+    , m_modbusDevice(new QModbusRtuSerialMaster(this))
     , m_requestTimer(new QTimer(this))
 {
     initDataMap();
     m_serverAddress = m_config["server_address"].toInt();
+
+    connect(m_modbusDevice, &QModbusClient::stateChanged, this, &LSJDevice::onStateChanged);
+
+    QJsonObject rtuParams = m_config["rtu_params"].toObject();
+    m_modbusDevice->setConnectionParameter(QModbusDevice::SerialPortNameParameter, rtuParams["port_name"].toString());
+    m_modbusDevice->setConnectionParameter(QModbusDevice::SerialBaudRateParameter, 9600);
+    m_modbusDevice->setConnectionParameter(QModbusDevice::SerialDataBitsParameter, QSerialPort::Data8);
+    m_modbusDevice->setConnectionParameter(QModbusDevice::SerialParityParameter, QSerialPort::NoParity);
+    m_modbusDevice->setConnectionParameter(QModbusDevice::SerialStopBitsParameter, QSerialPort::OneStop);
+
+    QJsonObject protocolParams = m_config["protocol_params"].toObject();
+    m_modbusDevice->setTimeout(protocolParams["response_timeout"].toInt());
+    m_modbusDevice->setNumberOfRetries(protocolParams["retry_count"].toInt());
+
     m_requestTimer->setInterval(100); // 帧间隔100ms
     m_requestTimer->setSingleShot(true);
     connect(m_requestTimer, &QTimer::timeout, this, &LSJDevice::processRequestQueue);
@@ -77,25 +91,14 @@ void LSJDevice::writeData2Device(const QString &key, const QString &value)
 
 bool LSJDevice::connectDevice()
 {
-    if (m_modbusDevice)
-        return true;
+    if (!m_modbusDevice)
+        return false;
 
-    m_modbusDevice = new QModbusRtuSerialMaster(this);
-    connect(m_modbusDevice, &QModbusClient::stateChanged, this, &LSJDevice::onStateChanged);
-
-    QJsonObject rtuParams = m_config["rtu_params"].toObject();
-    m_modbusDevice->setConnectionParameter(QModbusDevice::SerialPortNameParameter, rtuParams["port_name"].toString());
-    m_modbusDevice->setConnectionParameter(QModbusDevice::SerialBaudRateParameter, 9600);
-    m_modbusDevice->setConnectionParameter(QModbusDevice::SerialDataBitsParameter, QSerialPort::Data8);
-    m_modbusDevice->setConnectionParameter(QModbusDevice::SerialParityParameter, QSerialPort::NoParity);
-    m_modbusDevice->setConnectionParameter(QModbusDevice::SerialStopBitsParameter, QSerialPort::OneStop);
-
-    QJsonObject protocolParams = m_config["protocol_params"].toObject();
-    m_modbusDevice->setTimeout(protocolParams["response_timeout"].toInt());
-    m_modbusDevice->setNumberOfRetries(protocolParams["retry_count"].toInt());
+    if (m_modbusDevice->state() != QModbusDevice::UnconnectedState) {
+        m_modbusDevice->disconnectDevice();
+    }
 
     return m_modbusDevice->connectDevice();
-    return false;
 }
 
 void LSJDevice::disconnectDevice()

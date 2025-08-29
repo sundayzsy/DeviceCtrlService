@@ -13,14 +13,14 @@ class JGTDevice : public Device
     Q_OBJECT
 
 public:
-    explicit JGTDevice(const QString& id, const QJsonObject& config, QObject *parent = nullptr);
+    explicit JGTDevice(const QString& id, const QString& name, const QJsonObject& config, QObject *parent = nullptr);
     ~JGTDevice();
 
-    bool connectDevice() override;
     void disconnectDevice() override;
     const QJsonObject& getConfig() const override;
 
 public slots:
+    bool connectDevice() override;
     void writeData2Device(const QString &key, const QString &value) override;
     void writeText2Device(const QString &text) override;
     void stop() override;

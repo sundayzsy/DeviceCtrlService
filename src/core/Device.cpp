@@ -5,9 +5,10 @@
  * @brief Device类的实现
  */
 
- Device::Device(const QString& id, QObject *parent)
+ Device::Device(const QString& id, const QString& name, QObject *parent)
      : QObject(parent)
      , m_deviceId(id)
+     , m_deviceName(name)
      , m_connected(false)
  {
  }
@@ -24,6 +25,11 @@
  QString Device::deviceId() const
  {
      return m_deviceId;
+ }
+ 
+ QString Device::deviceName() const
+ {
+     return m_deviceName;
  }
  
  bool Device::isConnected() const

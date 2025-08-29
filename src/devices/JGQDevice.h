@@ -24,7 +24,7 @@ public:
      * @param config 设备的配置
      * @param parent 父对象
      */
-    explicit JGQDevice(const QString& id, const QJsonObject& config, QObject *parent = nullptr);
+    explicit JGQDevice(const QString& id, const QString& name, const QJsonObject& config, QObject *parent = nullptr);
     ~JGQDevice();
     void writeData2Device(const QString &key,const QString &value);
     bool connectDevice() override;

@@ -18,13 +18,18 @@
       * @param id 设备的唯一标识符
       * @param parent 父对象
       */
-     explicit Device(const QString& id, QObject *parent = nullptr);
+     explicit Device(const QString& id, const QString& name, QObject *parent = nullptr);
      virtual ~Device();
 
      /**
       * @brief 返回设备ID
       */
      QString deviceId() const;
+
+     /**
+      * @brief 返回设备名称
+      */
+     QString deviceName() const;
  
      /**
       * @brief 如果设备已连接，则返回true
@@ -35,7 +40,6 @@
       * @brief 连接设备
       * @return 如果连接成功，则返回true，否则返回false
       */
-     virtual bool connectDevice() = 0;
  
      /**
       * @brief 断开设备连接
@@ -48,6 +52,11 @@
      virtual const QJsonObject& getConfig() const = 0;
  
  public slots:
+     /**
+      * @brief 连接设备
+      * @return 如果连接成功，则返回true，否则返回false
+      */
+     virtual bool connectDevice() = 0;
      /**
       * @brief 将文本数据写入设备。必须在子类中实现。
       * @param text 要写入的文本
@@ -102,8 +111,9 @@
      void setConnected(bool connected);
  
  private:
-     QString m_deviceId; ///< 设备的唯一标识符
-     bool m_connected;   ///< 设备的连接状态
+     QString m_deviceId;   ///< 设备的唯一标识符
+     QString m_deviceName; ///< 设备的名称
+     bool m_connected;    ///< 设备的连接状态
  };
 
 #endif // DEVICE_H

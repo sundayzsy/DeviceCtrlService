@@ -6,17 +6,28 @@
 #include <QDebug>
 #include <QJsonArray>
 
-JGQDevice::JGQDevice(const QString& id, const QJsonObject& config, QObject *parent)
-    : Device(id, parent)
+JGQDevice::JGQDevice(const QString& id, const QString& name, const QJsonObject& config, QObject *parent)
+    : Device(id, name, parent)
     , m_config(config)
-    , m_modbusDevice(nullptr)
+    , m_modbusDevice(new QModbusTcpClient(this)) // 在构造函数中创建实例
     , m_requestTimer(new QTimer(this))
 {
     initDataMap();
     m_serverAddress = m_config["server_address"].toInt();
+
+    // 将连接参数设置和信号槽连接移到构造函数
+    QJsonObject tcpParams = m_config["tcp_params"].toObject();
+    m_modbusDevice->setConnectionParameter(QModbusDevice::NetworkAddressParameter, tcpParams["ip_address"].toString());
+    m_modbusDevice->setConnectionParameter(QModbusDevice::NetworkPortParameter, tcpParams["port"].toInt());
+
+    QJsonObject protocolParams = m_config["protocol_params"].toObject();
+    m_modbusDevice->setTimeout(protocolParams["response_timeout"].toInt());
+    m_modbusDevice->setNumberOfRetries(protocolParams["retry_count"].toInt());
+
+    connect(m_modbusDevice, &QModbusClient::stateChanged, this, &JGQDevice::onStateChanged);
+    connect(m_requestTimer, &QTimer::timeout, this, &JGQDevice::processRequestQueue);
     m_requestTimer->setInterval(50); // 帧间隔50ms
     m_requestTimer->setSingleShot(true);
-    connect(m_requestTimer, &QTimer::timeout, this, &JGQDevice::processRequestQueue);
 }
 
 JGQDevice::~JGQDevice()
@@ -67,20 +78,14 @@ void JGQDevice::writeData2Device(const QString &key, const QString &value)
 
 bool JGQDevice::connectDevice()
 {
-    if (m_modbusDevice)
-        return true;
+    if (!m_modbusDevice)
+        return false;
 
-    m_modbusDevice = new QModbusTcpClient(this);
-    connect(m_modbusDevice, &QModbusClient::stateChanged, this, &JGQDevice::onStateChanged);
-
-    QJsonObject tcpParams = m_config["tcp_params"].toObject();
-    m_modbusDevice->setConnectionParameter(QModbusDevice::NetworkAddressParameter, tcpParams["ip_address"].toString());
-    m_modbusDevice->setConnectionParameter(QModbusDevice::NetworkPortParameter, tcpParams["port"].toInt());
-
-    QJsonObject protocolParams = m_config["protocol_params"].toObject();
-    m_modbusDevice->setTimeout(protocolParams["response_timeout"].toInt());
-    m_modbusDevice->setNumberOfRetries(protocolParams["retry_count"].toInt());
-
+    if (m_modbusDevice->state() != QModbusDevice::UnconnectedState) {
+        m_modbusDevice->disconnectDevice();
+    }
+    
+    // 复用已有的m_modbusDevice实例进行连接
     return m_modbusDevice->connectDevice();
 }
 

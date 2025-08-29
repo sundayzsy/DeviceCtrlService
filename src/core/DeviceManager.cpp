@@ -22,6 +22,7 @@ DeviceManager::~DeviceManager()
 bool DeviceManager::addDevice(const QJsonObject& config)
 {
     QString id = config["device_id"].toString();
+    QString name = config["device_name"].toString();
     QString protocol = config["protocol"].toString();
 
     if (id.isEmpty() || protocol.isEmpty() || m_devices.contains(id)) {
@@ -30,11 +31,11 @@ bool DeviceManager::addDevice(const QJsonObject& config)
 
     Device* device = nullptr;
     if (protocol == "modbus_rtu") {
-        device = new LSJDevice(id, config);
+        device = new LSJDevice(id, name, config);
     } else if (protocol == "modbus_tcp") {
-        device = new JGQDevice(id, config);
+        device = new JGQDevice(id, name, config);
     } else if (protocol == "tcp_socket") {
-        device = new JGTDevice(id, config);
+        device = new JGTDevice(id, name, config);
     } else {
         // TODO: Add support for other protocols
     }
