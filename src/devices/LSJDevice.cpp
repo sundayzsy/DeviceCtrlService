@@ -13,12 +13,20 @@
 LSJDevice::LSJDevice(const QString& id, const QString& name, const QJsonObject& config, QObject *parent)
     : Device(id, name, parent)
     , m_config(config)
-    , m_modbusDevice(new QModbusRtuSerialMaster(this))
-    , m_requestTimer(new QTimer(this))
+    , m_modbusDevice(nullptr)
+    , m_requestTimer(nullptr)
 {
     initDataMap();
     m_serverAddress = m_config["server_address"].toInt();
+}
 
+LSJDevice::~LSJDevice()
+{
+}
+
+void LSJDevice::initInThread()
+{
+    m_modbusDevice = new QModbusRtuSerialMaster(this);
     connect(m_modbusDevice, &QModbusClient::stateChanged, this, &LSJDevice::onStateChanged);
 
     QJsonObject rtuParams = m_config["rtu_params"].toObject();
@@ -32,13 +40,10 @@ LSJDevice::LSJDevice(const QString& id, const QString& name, const QJsonObject& 
     m_modbusDevice->setTimeout(protocolParams["response_timeout"].toInt());
     m_modbusDevice->setNumberOfRetries(protocolParams["retry_count"].toInt());
 
+    m_requestTimer = new QTimer(this);
     m_requestTimer->setInterval(100); // 帧间隔100ms
     m_requestTimer->setSingleShot(true);
     connect(m_requestTimer, &QTimer::timeout, this, &LSJDevice::processRequestQueue);
-}
-
-LSJDevice::~LSJDevice()
-{
 }
 
 void LSJDevice::stop()

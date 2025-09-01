@@ -7,6 +7,7 @@
 #include <QThread>
 
 class Device;
+class DeviceManager;
 
 /**
  * @brief 线程管理器类，管理所有设备线程
@@ -18,13 +19,15 @@ class ThreadManager : public QObject
 public:
     /**
      * @brief 构造一个线程管理器对象
+     * @param deviceManager 设备管理器的指针
      * @param parent 父对象
      */
-    explicit ThreadManager(QObject *parent = nullptr);
+    explicit ThreadManager(DeviceManager* deviceManager, QObject *parent = nullptr);
     ~ThreadManager();
 
     /**
-     * @brief 清理并停止所有线程。应在程序关闭前调用。
+     * @brief 清理并停止所有线程。
+     * @deprecated 该函数已废弃，请使用 DeviceManager::cleanup()
      */
     void cleanup();
 
@@ -49,6 +52,7 @@ signals:
     void aboutToQuit();
 
 private:
+    DeviceManager* m_deviceManager; ///< 设备管理器的指针，非所有
     QMap<QString, QThread*> m_threads; ///< 线程映射表，以设备ID为键
 };
 

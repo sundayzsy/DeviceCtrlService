@@ -24,7 +24,7 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
     , m_deviceManager(new DeviceManager(this))
-    , m_threadManager(new ThreadManager(this))
+    , m_threadManager(new ThreadManager(m_deviceManager, this))
     , m_dataManager(new DataManager(this))
     , m_isInternalChange(false)
 {
@@ -316,7 +316,7 @@ void MainWindow::onPrintLog(const QByteArray &bytes, bool isWrite)
 
 void MainWindow::closeEvent(QCloseEvent *event)
 {
-    m_threadManager->cleanup();
+    m_deviceManager->cleanup();
     event->accept();
 }
 

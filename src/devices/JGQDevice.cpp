@@ -9,13 +9,21 @@
 JGQDevice::JGQDevice(const QString& id, const QString& name, const QJsonObject& config, QObject *parent)
     : Device(id, name, parent)
     , m_config(config)
-    , m_modbusDevice(new QModbusTcpClient(this)) // 在构造函数中创建实例
-    , m_requestTimer(new QTimer(this))
+    , m_modbusDevice(nullptr) // 初始化为空指针
+    , m_requestTimer(nullptr) // 初始化为空指针
 {
     initDataMap();
     m_serverAddress = m_config["server_address"].toInt();
+}
 
-    // 将连接参数设置和信号槽连接移到构造函数
+JGQDevice::~JGQDevice()
+{
+}
+
+void JGQDevice::initInThread()
+{
+    // 创建和配置 Modbus 客户端
+    m_modbusDevice = new QModbusTcpClient(this);
     QJsonObject tcpParams = m_config["tcp_params"].toObject();
     m_modbusDevice->setConnectionParameter(QModbusDevice::NetworkAddressParameter, tcpParams["ip_address"].toString());
     m_modbusDevice->setConnectionParameter(QModbusDevice::NetworkPortParameter, tcpParams["port"].toInt());
@@ -25,13 +33,12 @@ JGQDevice::JGQDevice(const QString& id, const QString& name, const QJsonObject& 
     m_modbusDevice->setNumberOfRetries(protocolParams["retry_count"].toInt());
 
     connect(m_modbusDevice, &QModbusClient::stateChanged, this, &JGQDevice::onStateChanged);
+
+    // 创建和配置请求定时器
+    m_requestTimer = new QTimer(this);
     connect(m_requestTimer, &QTimer::timeout, this, &JGQDevice::processRequestQueue);
     m_requestTimer->setInterval(50); // 帧间隔50ms
     m_requestTimer->setSingleShot(true);
-}
-
-JGQDevice::~JGQDevice()
-{
 }
 
 void JGQDevice::stop()

@@ -20,6 +20,7 @@ public:
     const QJsonObject& getConfig() const override;
 
 public slots:
+    void initInThread() override;
     bool connectDevice() override;
     void writeData2Device(const QString &key, const QString &value) override;
     void writeText2Device(const QString &text) override;

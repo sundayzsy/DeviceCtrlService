@@ -7,16 +7,19 @@
 JGTDevice::JGTDevice(const QString& id, const QString& name, const QJsonObject& config, QObject *parent)
     : Device(id, name, parent)
     , m_config(config)
-    , m_tcpSocket(new QTcpSocket(this))
+    , m_tcpSocket(nullptr)
 {
-    connect(m_tcpSocket, &QTcpSocket::stateChanged, this, &JGTDevice::onSocketStateChanged);
-    connect(m_tcpSocket, &QTcpSocket::readyRead, this, &JGTDevice::onReadyRead);
-
-
 }
 
 JGTDevice::~JGTDevice()
 {
+}
+
+void JGTDevice::initInThread()
+{
+    m_tcpSocket = new QTcpSocket(this);
+    connect(m_tcpSocket, &QTcpSocket::stateChanged, this, &JGTDevice::onSocketStateChanged);
+    connect(m_tcpSocket, &QTcpSocket::readyRead, this, &JGTDevice::onReadyRead);
 }
 
 void JGTDevice::writeData2Device(const QString &key, const QString &value)
@@ -27,7 +30,7 @@ void JGTDevice::writeData2Device(const QString &key, const QString &value)
         QJsonObject obj = val.toObject();
         if (obj["key"].toString() == key) {
             QString command = obj["command"].toString();
-            if (m_tcpSocket->state() == QAbstractSocket::ConnectedState) {
+            if (m_tcpSocket && m_tcpSocket->state() == QAbstractSocket::ConnectedState) {
                 m_tcpSocket->write(encodeRequest(command, value));
             }
             return;
@@ -38,6 +41,10 @@ void JGTDevice::writeData2Device(const QString &key, const QString &value)
 
 bool JGTDevice::connectDevice()
 {
+    if (!m_tcpSocket) {
+        qWarning() << "JGTDevice::connectDevice called before initInThread()";
+        return false;
+    }
     if (m_tcpSocket->state() == QAbstractSocket::UnconnectedState) {
         QJsonObject tcpParams = m_config["tcp_params"].toObject();
         QString ip = tcpParams["ip_address"].toString();
@@ -49,7 +56,9 @@ bool JGTDevice::connectDevice()
 
 void JGTDevice::disconnectDevice()
 {
-    m_tcpSocket->disconnectFromHost();
+    if (m_tcpSocket) {
+        m_tcpSocket->disconnectFromHost();
+    }
 }
 
 const QJsonObject& JGTDevice::getConfig() const
@@ -62,7 +71,7 @@ void JGTDevice::writeText2Device(const QString &text)
     if(text.isEmpty())
         return;
 
-    if (m_tcpSocket->state() == QAbstractSocket::ConnectedState)
+    if (m_tcpSocket && m_tcpSocket->state() == QAbstractSocket::ConnectedState)
     {
         QByteArray bytes = text.toLatin1();
         m_tcpSocket->write(bytes);

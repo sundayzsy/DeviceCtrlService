@@ -11,8 +11,8 @@
     "retry_count": 0
   },
   "registers": [
-    { "key": "JGT_LaserSpeed", "name": "激光速度", "command": "DSPEED", "access": "read-write" },
-    { "key": "JGT_LaserPower", "name": "激光功率", "command": "DPOWER", "access": "read-write" },
-    { "key": "JGT_LaserFreq", "name": "激光频率", "command": "DFREQ", "access": "read-write" }
+    { "key": "JGT_LaserSpeed", "name": "激光速度", "command": "DSPEED", "access": "write" },
+    { "key": "JGT_LaserPower", "name": "激光功率", "command": "DPOWER", "access": "write" },
+    { "key": "JGT_LaserFreq", "name": "激光频率", "command": "DFREQ", "access": "write" }
   ]
 }

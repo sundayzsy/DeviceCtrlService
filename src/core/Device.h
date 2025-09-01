@@ -52,9 +52,18 @@
      virtual const QJsonObject& getConfig() const = 0;
  
  public slots:
+    /**
+     * @brief 在工作线程中执行一次性初始化。
+     *        此槽函数设计为由线程的 started() 信号触发，
+     *        以确保在设备对象移动到新线程后才执行关键的初始化操作，
+     *        例如创建QObject子对象(如QTimer, QModbusClient)和建立信号槽连接。
+     */
+    virtual void initInThread() = 0;
+
      /**
-      * @brief 连接设备
-      * @return 如果连接成功，则返回true，否则返回false
+      * @brief 连接设备。此方法负责建立与物理设备的通信。
+      *        可以被重复调用以实现断线重连。
+      * @return 如果连接请求成功发出，则返回true，否则返回false
       */
      virtual bool connectDevice() = 0;
      /**

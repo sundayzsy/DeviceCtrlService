@@ -32,6 +32,7 @@ public:
     const QJsonObject& getConfig() const override;
 
 public slots:
+    void initInThread() override;
     void stop() override;
 
 private slots:

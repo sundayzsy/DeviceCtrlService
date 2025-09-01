@@ -7,6 +7,7 @@
 #include <QJsonObject>
 
 class Device;
+class QThread;
 
 /**
  * @brief 设备管理器类，管理系统中的所有设备
@@ -22,6 +23,11 @@ public:
      */
     explicit DeviceManager(QObject *parent = nullptr);
     ~DeviceManager();
+
+    /**
+     * @brief 清理所有设备和线程，应在程序关闭前调用
+     */
+    void cleanup();
 
     /**
      * @brief 向系统添加一个新设备
@@ -48,8 +54,24 @@ public:
      */
     QList<Device*> getAllDevices() const;
 
+    /**
+     * @brief 注册设备与其工作线程的关联关系
+     * @param deviceId 设备ID
+     * @param thread 线程指针
+     */
+    void registerDeviceThread(const QString& deviceId, QThread* thread);
+
+    /**
+     * @brief 获取指定设备ID关联的工作线程
+     * @param deviceId 设备ID
+     * @return 线程指针，如果未找到则为nullptr
+     */
+    QThread* getDeviceThread(const QString& deviceId) const;
+
+
 private:
     QMap<QString, Device*> m_devices; ///< 设备映射表，以设备ID为键
+    QMap<QString, QThread*> m_deviceThreads; ///< 设备ID到线程指针的映射
 };
 
 #endif // DEVICEMANAGER_H
