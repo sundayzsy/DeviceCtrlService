@@ -5,6 +5,7 @@
 #include "core/ThreadManager.h"
 #include "core/DataManager.h"
 #include "core/Device.h"
+#include "devices/ZMotionDevice.h"
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -108,6 +109,11 @@ void MainWindow::loadDevice(const QString& filePath)
             // 如果这是第一个设备，则立即显示其数据
             if (ui->deviceTableWidget->rowCount() == 1) {
                 ui->deviceTableWidget->selectRow(0);
+            }
+
+            // 如果是ZMotion设备，则在设备加载后设置信号槽连接
+            if (deviceId == "zmotion_001") {
+                setupZmotionDeviceConnections();
             }
         }
     }
@@ -246,43 +252,59 @@ void MainWindow::onDeviceDataUpdated(const QString& deviceId, const QString& key
 
     // 处理ZMotion设备的特殊数据更新
     if (deviceId == "zmotion_001" && ui->stackedWidget->currentIndex() == 2) {
-        // 处理轴位置数据
+        int keyAxis = -1;
+
+        // 解析 key 中的轴号
+        if (key.startsWith("axis")) {
+            keyAxis = key.mid(4, 1).toInt();
+        }
+
+        // --- 以下是全局状态更新，不受选中轴影响 ---
+
+        // 1. 更新轴状态总览表 (axisStatusTable)
         if (key.contains("_position")) {
-            int axisId = key.mid(4, 1).toInt(); // 从"axis0_position"中提取轴号
-            if (axisId < ui->axisStatusTable->rowCount()) {
-                ui->axisStatusTable->item(axisId, 1)->setText(QString::number(value.toDouble(), 'f', 3));
+            if (keyAxis >= 0 && keyAxis < ui->axisStatusTable->rowCount()) {
+                ui->axisStatusTable->item(keyAxis, 1)->setText(QString::number(value.toDouble(), 'f', 3));
             }
-        }
-        // 处理轴状态数据
-        else if (key.contains("_status")) {
-            int axisId = key.mid(4, 1).toInt();
-            if (axisId < ui->axisStatusTable->rowCount()) {
+        } else if (key.contains("_status_code")) { // 假设状态码以 _status_code 结尾
+            if (keyAxis >= 0 && keyAxis < ui->axisStatusTable->rowCount()) {
                 int status = value.toInt();
-                QString statusText = (status == 0) ? "停止" : ((status & 0x01) ? "运动中" : "就绪");
-                ui->axisStatusTable->item(axisId, 3)->setText(statusText);
+                // 这里可以添加更复杂的状态解析逻辑
+                QString statusText = (status == 0) ? "空闲" : "运动中";
+                ui->axisStatusTable->item(keyAxis, 3)->setText(statusText);
             }
         }
-        // 处理输入IO状态
-        else if (key.startsWith("input")) {
-            int inputId = key.mid(5).toInt(); // 从"input0"中提取IO号
-            if (inputId < 8) {
+
+        // 2. 更新IO输入指示灯
+        if (key.startsWith("input")) {
+            int inputId = key.mid(5).toInt();
+            if (inputId >= 0 && inputId < 8) {
                 QLabel* inputLed = findChild<QLabel*>(QString("input%1Led").arg(inputId));
                 if (inputLed) {
-                    bool state = (value.toString() == "1");
-                    if (state) {
-                        inputLed->setStyleSheet("QLabel { background-color: #4CAF50; color: white; border: 1px solid #BDBDBD; border-radius: 3px; padding: 2px; }");
-                    } else {
-                        inputLed->setStyleSheet("QLabel { background-color: #E0E0E0; border: 1px solid #BDBDBD; border-radius: 3px; padding: 2px; }");
+                    bool state = value.toBool();
+                    inputLed->setStyleSheet(state ? "background-color: #4CAF50; color: white;" : "background-color: #E0E0E0;");
+                }
+            }
+        }
+ 
+        // 3. 更新IO输出按钮状态 (反馈)
+        if (key.startsWith("output")) {
+            int outputId = key.mid(6).toInt();
+            if (outputId >= 0 && outputId < 8) { // 假设有8个输出按钮
+                QPushButton* outputBtn = findChild<QPushButton*>(QString("output%1Btn").arg(outputId));
+                if (outputBtn) {
+                    bool state = value.toBool();
+                    // 避免触发 toggled 信号的无限循环
+                    if (outputBtn->isChecked() != state) {
+                        outputBtn->setChecked(state);
                     }
                 }
             }
         }
-        
-        // 在ZMotion日志中显示数据更新
-        QString logMsg = QString("[%1] %2 = %3").arg(QTime::currentTime().toString("hh:mm:ss")).arg(key).arg(value.toString());
+
+        // 4. 在日志区域显示所有原始数据更新
+        QString logMsg = QString("[%1] %2 = %3").arg(QTime::currentTime().toString("hh:mm:ss.zzz")).arg(key).arg(value.toString());
         ui->zmotionLogEdit->appendPlainText(logMsg);
-        
-        // 自动滚动到底部
         if (ui->autoScrollCheckBox->isChecked()) {
             ui->zmotionLogEdit->moveCursor(QTextCursor::End);
         }
@@ -439,168 +461,183 @@ void MainWindow::onReconnectButtonClicked(const QString &deviceId)
 
 void MainWindow::initZMotionUI()
 {
-    // 初始化ZMotion页面UI
-    ui->axisStatusTable->setRowCount(6);
-    ui->axisStatusTable->setHorizontalHeaderLabels({"轴号", "位置", "速度", "状态"});
-    ui->axisStatusTable->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
-    ui->axisStatusTable->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
-    ui->axisStatusTable->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Stretch);
-    ui->axisStatusTable->horizontalHeader()->setSectionResizeMode(3, QHeaderView::Stretch);
-    for (int i = 0; i < 6; i++) {
-        ui->axisStatusTable->setItem(i, 0, new QTableWidgetItem(QString("轴%1").arg(i)));
-        ui->axisStatusTable->setItem(i, 1, new QTableWidgetItem("0.000"));
-        ui->axisStatusTable->setItem(i, 2, new QTableWidgetItem("0.000"));
-        ui->axisStatusTable->setItem(i, 3, new QTableWidgetItem("未知"));
+    // --- 1. 动态加载和初始化UI控件 ---
 
-        for (int j = 0; j < 4; j++) {
-            if(ui->axisStatusTable->item(i,j)) {
-                ui->axisStatusTable->item(i, j)->setFlags(ui->axisStatusTable->item(i, j)->flags() & ~Qt::ItemIsEditable);
+    // 1.1 从JSON文件加载轴信息到zmotionAxis_comboBox
+    ui->zmotionAxis_comboBox->clear();
+    QString configPath = QCoreApplication::applicationDirPath() + "/config/zmotion_device.json";
+    QFile configFile(configPath);
+    if (configFile.open(QIODevice::ReadOnly)) {
+        QByteArray data = configFile.readAll();
+        QJsonDocument doc = QJsonDocument::fromJson(data);
+        if (!doc.isNull() && doc.isObject()) {
+            QJsonObject rootObj = doc.object();
+            if (rootObj.contains("axes") && rootObj["axes"].isArray()) {
+                QJsonArray axesArray = rootObj["axes"].toArray();
+                for (const QJsonValue& value : axesArray) {
+                    QJsonObject axisObj = value.toObject();
+                    if (axisObj.contains("id") && axisObj.contains("name")) {
+                        // 只添加启用的轴
+                        if (axisObj.value("enabled").toBool(true)) {
+                           QString name = axisObj["name"].toString();
+                           int id = axisObj["id"].toInt();
+                           ui->zmotionAxis_comboBox->addItem(name, id);
+                        }
+                    }
+                }
             }
+        }
+        configFile.close();
+    } else {
+        qWarning() << "Could not open zmotion_device.json for reading, using fallback.";
+        // 如果配置文件读取失败，提供备用选项
+        for (int i = 0; i < 6; ++i) {
+            ui->zmotionAxis_comboBox->addItem(QString("轴 %1 (Fallback)").arg(i), i);
         }
     }
-    ui->axisStatusTable->resizeColumnsToContents();
+
+    // 1.2 初始化回零模式下拉框 homingMode_comboBox
+    ui->homingMode_comboBox->clear();
+    ui->homingMode_comboBox->addItem("Z相正向回零", 1);
+    ui->homingMode_comboBox->addItem("Z相负向回零", 2);
+    ui->homingMode_comboBox->addItem("原点正向回零+反找", 3);
+    ui->homingMode_comboBox->addItem("原点负向回零+反找", 4);
+    ui->homingMode_comboBox->addItem("原点正向回零", 13);
+    ui->homingMode_comboBox->addItem("原点负向回零", 14);
+
+    // 1.3 为QLineEdit设置默认文本
+    ui->units_lineEdit->setText("1000");
+    ui->lspeed_lineEdit->setText("0");
+    ui->speed_lineEdit->setText("10");
+    ui->accel_lineEdit->setText("100");
+    ui->decel_lineEdit->setText("100");
+    ui->sramp_lineEdit->setText("20");
+    ui->distance_lineEdit->setText("10");
+    ui->homingCreepSpeed_lineEdit->setText("10");
+
+    // 1.4 初始化轴状态总览表 (保持不变)
+    ui->axisStatusTable->setRowCount(6);
+    ui->axisStatusTable->setHorizontalHeaderLabels({"轴号", "位置(pulse)", "速度(pulse/s)", "状态"});
+    ui->axisStatusTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    for (int i = 0; i < 6; i++) {
+        ui->axisStatusTable->setItem(i, 0, new QTableWidgetItem(QString("轴%1").arg(i)));
+        ui->axisStatusTable->setItem(i, 1, new QTableWidgetItem("0.0"));
+        ui->axisStatusTable->setItem(i, 2, new QTableWidgetItem("0.0"));
+        ui->axisStatusTable->setItem(i, 3, new QTableWidgetItem("未知"));
+        for (int j = 0; j < 4; ++j) {
+            if(ui->axisStatusTable->item(i, j))
+                ui->axisStatusTable->item(i, j)->setFlags(ui->axisStatusTable->item(i, j)->flags() & ~Qt::ItemIsEditable);
+        }
+    }
+//    ui->axisStatusTable->resizeColumnsToContents();
+
+    // --- 日志工具栏 (保持不变) ---
+    connect(ui->clearLogBtn, &QPushButton::clicked, ui->zmotionLogEdit, &QPlainTextEdit::clear);
+}
 
 
-    // 轴控制按钮连接
-    connect(ui->moveAbsBtn, &QPushButton::clicked, this, [this]() {
-        int axisId = ui->axisComboBox->currentIndex();
-        double position = ui->absPosSpinBox->value();
-        double speed = ui->speedSpinBox->value();
-        
-        QList<QTableWidgetItem*> selectedItems = ui->deviceTableWidget->selectedItems();
-        if (!selectedItems.isEmpty()) {
-            QString deviceId = selectedItems.first()->data(Qt::UserRole).toString();
-            Device* device = m_deviceManager->getDevice(deviceId);
-            if (device) {
-                QString command = QString("axis%1_abs_move").arg(axisId);
-                QString value = QString("%1,%2").arg(position).arg(speed);
-                QMetaObject::invokeMethod(device, "writeData2Device", Qt::QueuedConnection,
-                                          Q_ARG(QString, command), Q_ARG(QString, value));
-            }
-        }
+void MainWindow::setupZmotionDeviceConnections()
+{
+    ZMotionDevice* zmotionDevice = static_cast<ZMotionDevice*>(m_deviceManager->getDevice("zmotion_001"));
+    if (!zmotionDevice) {
+        qWarning() << "ZMotion device not found at setup time, UI connections skipped.";
+        return;
+    }
+
+    // --- 运动控制 ---
+    // JOG+
+    connect(ui->jogPositive_pushButton, &QPushButton::pressed, this, [zmotionDevice, this]() {
+        int axisId = ui->zmotionAxis_comboBox->currentData().toInt();
+        QMetaObject::invokeMethod(zmotionDevice, "moveContinuous", Qt::QueuedConnection, Q_ARG(int, axisId), Q_ARG(int, 1));
     });
-    
-    connect(ui->moveRelBtn, &QPushButton::clicked, this, [this]() {
-        int axisId = ui->axisComboBox->currentIndex();
-        double distance = ui->relPosSpinBox->value();
-        double speed = ui->speedSpinBox->value();
-        
-        QList<QTableWidgetItem*> selectedItems = ui->deviceTableWidget->selectedItems();
-        if (!selectedItems.isEmpty()) {
-            QString deviceId = selectedItems.first()->data(Qt::UserRole).toString();
-            Device* device = m_deviceManager->getDevice(deviceId);
-            if (device) {
-                QString command = QString("axis%1_rel_move").arg(axisId);
-                QString value = QString("%1,%2").arg(distance).arg(speed);
-                QMetaObject::invokeMethod(device, "writeData2Device", Qt::QueuedConnection,
-                                          Q_ARG(QString, command), Q_ARG(QString, value));
-            }
-        }
+    connect(ui->jogPositive_pushButton, &QPushButton::released, this, [zmotionDevice, this]() {
+        int axisId = ui->zmotionAxis_comboBox->currentData().toInt();
+        QMetaObject::invokeMethod(zmotionDevice, "stopAxis", Qt::QueuedConnection, Q_ARG(int, axisId));
     });
-    
-    connect(ui->stopAxisBtn, &QPushButton::clicked, this, [this]() {
-        int axisId = ui->axisComboBox->currentIndex();
-        
-        QList<QTableWidgetItem*> selectedItems = ui->deviceTableWidget->selectedItems();
-        if (!selectedItems.isEmpty()) {
-            QString deviceId = selectedItems.first()->data(Qt::UserRole).toString();
-            Device* device = m_deviceManager->getDevice(deviceId);
-            if (device) {
-                QString command = QString("axis%1_stop").arg(axisId);
-                QMetaObject::invokeMethod(device, "writeData2Device", Qt::QueuedConnection,
-                                          Q_ARG(QString, command), Q_ARG(QString, "1"));
-            }
-        }
+
+    // JOG-
+    connect(ui->jogNegative_pushButton, &QPushButton::pressed, this, [zmotionDevice, this]() {
+        int axisId = ui->zmotionAxis_comboBox->currentData().toInt();
+        QMetaObject::invokeMethod(zmotionDevice, "moveContinuous", Qt::QueuedConnection, Q_ARG(int, axisId), Q_ARG(int, -1));
     });
-    
-    connect(ui->homeAxisBtn, &QPushButton::clicked, this, [this]() {
-        int axisId = ui->axisComboBox->currentIndex();
-        
-        QList<QTableWidgetItem*> selectedItems = ui->deviceTableWidget->selectedItems();
-        if (!selectedItems.isEmpty()) {
-            QString deviceId = selectedItems.first()->data(Qt::UserRole).toString();
-            Device* device = m_deviceManager->getDevice(deviceId);
-            if (device) {
-                QString command = QString("axis%1_home").arg(axisId);
-                QMetaObject::invokeMethod(device, "writeData2Device", Qt::QueuedConnection,
-                                          Q_ARG(QString, command), Q_ARG(QString, "1"));
-            }
-        }
+    connect(ui->jogNegative_pushButton, &QPushButton::released, this, [zmotionDevice, this]() {
+        int axisId = ui->zmotionAxis_comboBox->currentData().toInt();
+        QMetaObject::invokeMethod(zmotionDevice, "stopAxis", Qt::QueuedConnection, Q_ARG(int, axisId));
     });
-    
-    connect(ui->stopAllBtn, &QPushButton::clicked, this, [this]() {
-        QList<QTableWidgetItem*> selectedItems = ui->deviceTableWidget->selectedItems();
-        if (!selectedItems.isEmpty()) {
-            QString deviceId = selectedItems.first()->data(Qt::UserRole).toString();
-            Device* device = m_deviceManager->getDevice(deviceId);
-            if (device) {
-                QMetaObject::invokeMethod(device, "writeData2Device", Qt::QueuedConnection,
-                                          Q_ARG(QString, "stop_all"), Q_ARG(QString, "1"));
-            }
-        }
+
+    // 相对移动
+    connect(ui->moveRelative_pushButton, &QPushButton::clicked, this, [zmotionDevice, this]() {
+        int axisId = ui->zmotionAxis_comboBox->currentData().toInt();
+        double distance = ui->distance_lineEdit->text().toDouble();
+        QMetaObject::invokeMethod(zmotionDevice, "moveRelative", Qt::QueuedConnection, Q_ARG(int, axisId), Q_ARG(double, distance));
     });
-    
-    // 输出控制按钮连接
+
+    // 停止
+    connect(ui->stop_pushButton, &QPushButton::clicked, this, [zmotionDevice, this]() {
+        int axisId = ui->zmotionAxis_comboBox->currentData().toInt();
+        QMetaObject::invokeMethod(zmotionDevice, "stopAxis", Qt::QueuedConnection, Q_ARG(int, axisId));
+    });
+
+    // 位置清零
+    connect(ui->zeroPosition_pushButton, &QPushButton::clicked, this, [zmotionDevice, this]() {
+        int axisId = ui->zmotionAxis_comboBox->currentData().toInt();
+        QMetaObject::invokeMethod(zmotionDevice, "zeroPosition", Qt::QueuedConnection, Q_ARG(int, axisId));
+    });
+
+    // --- 回零控制 ---
+    connect(ui->startHoming_pushButton, &QPushButton::clicked, this, [zmotionDevice, this]() {
+        int axisId = ui->zmotionAxis_comboBox->currentData().toInt();
+        int mode = ui->homingMode_comboBox->currentData().toInt();
+        int homingIoPort = ui->homingIo_spinBox->value();
+        // 常开 (index 0) 对应 invertIo = false, 常闭 (index 1) 对应 invertIo = true
+        bool invertIo = (ui->homingIoLogic_comboBox->currentIndex() == 1);
+        double creepSpeed = ui->homingCreepSpeed_lineEdit->text().toDouble();
+
+        QMetaObject::invokeMethod(zmotionDevice, "startHoming", Qt::QueuedConnection,
+                                  Q_ARG(int, axisId),
+                                  Q_ARG(int, mode),
+                                  Q_ARG(int, homingIoPort),
+                                  Q_ARG(bool, invertIo),
+                                  Q_ARG(double, creepSpeed));
+    });
+
+    // --- 参数自动应用 ---
+    auto applyParameters = [zmotionDevice, this]() {
+        int axisId = ui->zmotionAxis_comboBox->currentData().toInt();
+        double units = ui->units_lineEdit->text().toDouble();
+        double speed = ui->speed_lineEdit->text().toDouble();
+        double accel = ui->accel_lineEdit->text().toDouble();
+        double decel = ui->decel_lineEdit->text().toDouble();
+        double sramp = ui->sramp_lineEdit->text().toDouble();
+
+        QMetaObject::invokeMethod(zmotionDevice, "setAxisParameters", Qt::QueuedConnection,
+                                  Q_ARG(int, axisId),
+                                  Q_ARG(double, units),
+                                  Q_ARG(double, speed),
+                                  Q_ARG(double, accel),
+                                  Q_ARG(double, decel),
+                                  Q_ARG(double, sramp));
+    };
+
+    connect(ui->jogPositive_pushButton, &QPushButton::pressed, this, applyParameters);
+    connect(ui->jogNegative_pushButton, &QPushButton::pressed, this, applyParameters);
+    connect(ui->moveRelative_pushButton, &QPushButton::clicked, this, applyParameters);
+    connect(ui->startHoming_pushButton, &QPushButton::clicked, this, applyParameters);
+
+    // --- IO控制 ---
     QList<QPushButton*> outputButtons = {
         ui->output0Btn, ui->output1Btn, ui->output2Btn, ui->output3Btn,
         ui->output4Btn, ui->output5Btn, ui->output6Btn, ui->output7Btn
     };
-    
     for (int i = 0; i < outputButtons.size(); i++) {
-        connect(outputButtons[i], &QPushButton::toggled, this, [this, i](bool checked) {
-            QList<QTableWidgetItem*> selectedItems = ui->deviceTableWidget->selectedItems();
-            if (!selectedItems.isEmpty()) {
-                QString deviceId = selectedItems.first()->data(Qt::UserRole).toString();
-                Device* device = m_deviceManager->getDevice(deviceId);
-                if (device) {
-                    QString command = QString("output%1").arg(i);
-                    QString value = checked ? "1" : "0";
-                    QMetaObject::invokeMethod(device, "writeData2Device", Qt::QueuedConnection,
-                                              Q_ARG(QString, command), Q_ARG(QString, value));
-                }
-            }
+        connect(outputButtons[i], &QPushButton::toggled, this, [zmotionDevice, i](bool checked) {
+            QMetaObject::invokeMethod(zmotionDevice, "setDigitalOutput", Qt::QueuedConnection, Q_ARG(int, i), Q_ARG(bool, checked));
         });
     }
-    
-    // 日志工具栏按钮连接
-    connect(ui->clearLogBtn, &QPushButton::clicked, this, [this]() {
-        ui->zmotionLogEdit->clear();
-    });
-}
-
-
-void MainWindow::updateZMotionAxisStatus()
-{
-    // 这个方法会在接收到设备数据更新时被调用
-    // 具体实现可以根据实际需要进行扩展
-}
-
-void MainWindow::updateZMotionIOStatus()
-{
-    // 这个方法会在接收到IO状态更新时被调用
-    // 具体实现可以根据实际需要进行扩展
 }
 
 
 void MainWindow::on_jgtClearLogBtn_clicked()
 {
     ui->logEdit->clear();
-}
-
-void MainWindow::on_jgtAutoScrollCheckBox_toggled(bool checked)
-{
-    Q_UNUSED(checked);
-    // 实际的滚动逻辑在 onPrintLog 中处理
-}
-
-void MainWindow::on_jgtHexDisplayCheckBox_toggled(bool checked)
-{
-    Q_UNUSED(checked);
-    // 实际的显示逻辑在 onPrintLog 中处理
-}
-
-void MainWindow::on_zmotionHexDisplayCheckBox_toggled(bool checked)
-{
-    Q_UNUSED(checked);
-    // 实际的显示逻辑在 onPrintLog 中处理
 }

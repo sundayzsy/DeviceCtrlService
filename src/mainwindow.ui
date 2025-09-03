@@ -234,174 +234,273 @@
             <number>6</number>
            </property>
            <item>
-            <widget class="QGroupBox" name="axisControlGroup">
+            <widget class="QGroupBox" name="zmotionAxisControlGroup">
              <property name="title">
               <string>轴控制</string>
              </property>
-             <layout class="QGridLayout" name="axisControlLayout">
-              <item row="0" column="0">
-               <widget class="QLabel" name="axisLabel">
-                <property name="text">
-                 <string>选择轴:</string>
-                </property>
-               </widget>
-              </item>
-              <item row="0" column="1">
-               <widget class="QComboBox" name="axisComboBox">
+             <layout class="QVBoxLayout" name="newAxisControlMainLayout">
+              <item>
+               <layout class="QHBoxLayout" name="axisSelectionLayout">
                 <item>
-                 <property name="text">
-                  <string>X轴 (0)</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>Y轴 (1)</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>Z轴 (2)</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>A轴 (3)</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>B轴 (4)</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>C轴 (5)</string>
-                 </property>
-                </item>
-               </widget>
-              </item>
-              <item row="1" column="0">
-               <widget class="QLabel" name="absPosLabel">
-                <property name="text">
-                 <string>绝对位置:</string>
-                </property>
-               </widget>
-              </item>
-              <item row="1" column="1">
-               <widget class="QDoubleSpinBox" name="absPosSpinBox">
-                <property name="suffix">
-                 <string> mm</string>
-                </property>
-                <property name="decimals">
-                 <number>3</number>
-                </property>
-                <property name="minimum">
-                 <double>-999999.000000000000000</double>
-                </property>
-                <property name="maximum">
-                 <double>999999.000000000000000</double>
-                </property>
-               </widget>
-              </item>
-              <item row="1" column="2">
-               <widget class="QPushButton" name="moveAbsBtn">
-                <property name="styleSheet">
-                 <string notr="true">QPushButton { background-color: #4CAF50; color: white; }</string>
-                </property>
-                <property name="text">
-                 <string>绝对移动</string>
-                </property>
-               </widget>
-              </item>
-              <item row="2" column="0">
-               <widget class="QLabel" name="relPosLabel">
-                <property name="text">
-                 <string>相对距离:</string>
-                </property>
-               </widget>
-              </item>
-              <item row="2" column="1">
-               <widget class="QDoubleSpinBox" name="relPosSpinBox">
-                <property name="suffix">
-                 <string> mm</string>
-                </property>
-                <property name="decimals">
-                 <number>3</number>
-                </property>
-                <property name="minimum">
-                 <double>-999999.000000000000000</double>
-                </property>
-                <property name="maximum">
-                 <double>999999.000000000000000</double>
-                </property>
-               </widget>
-              </item>
-              <item row="2" column="2">
-               <widget class="QPushButton" name="moveRelBtn">
-                <property name="styleSheet">
-                 <string notr="true">QPushButton { background-color: #2196F3; color: white; }</string>
-                </property>
-                <property name="text">
-                 <string>相对移动</string>
-                </property>
-               </widget>
-              </item>
-              <item row="3" column="0">
-               <widget class="QLabel" name="speedLabel">
-                <property name="text">
-                 <string>移动速度:</string>
-                </property>
-               </widget>
-              </item>
-              <item row="3" column="1">
-               <widget class="QDoubleSpinBox" name="speedSpinBox">
-                <property name="suffix">
-                 <string> mm/s</string>
-                </property>
-                <property name="minimum">
-                 <double>0.100000000000000</double>
-                </property>
-                <property name="maximum">
-                 <double>1000.000000000000000</double>
-                </property>
-                <property name="value">
-                 <double>10.000000000000000</double>
-                </property>
-               </widget>
-              </item>
-              <item row="4" column="0" colspan="3">
-               <layout class="QHBoxLayout" name="controlButtonLayout">
-                <item>
-                 <widget class="QPushButton" name="stopAxisBtn">
-                  <property name="styleSheet">
-                   <string notr="true">QPushButton { background-color: #FF9800; color: white; }</string>
-                  </property>
+                 <widget class="QLabel" name="label">
                   <property name="text">
-                   <string>停止轴</string>
+                   <string>选择轴:</string>
                   </property>
                  </widget>
                 </item>
                 <item>
-                 <widget class="QPushButton" name="homeAxisBtn">
-                  <property name="styleSheet">
-                   <string notr="true">QPushButton { background-color: #9C27B0; color: white; }</string>
-                  </property>
-                  <property name="text">
-                   <string>回零</string>
-                  </property>
-                 </widget>
+                 <widget class="QComboBox" name="zmotionAxis_comboBox"/>
                 </item>
                 <item>
-                 <widget class="QPushButton" name="stopAllBtn">
-                  <property name="styleSheet">
-                   <string notr="true">QPushButton { background-color: #F44336; color: white; font-weight: bold; }</string>
+                 <spacer name="axisSelectionSpacer">
+                  <property name="orientation">
+                   <enum>Qt::Horizontal</enum>
                   </property>
-                  <property name="text">
-                   <string>急停所有轴</string>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>40</width>
+                    <height>20</height>
+                   </size>
                   </property>
-                 </widget>
+                 </spacer>
                 </item>
                </layout>
+              </item>
+              <item>
+               <widget class="QGroupBox" name="paramSettingsGroup">
+                <property name="title">
+                 <string>参数设置</string>
+                </property>
+                <layout class="QFormLayout" name="paramSettingsLayout">
+                 <item row="0" column="0">
+                  <widget class="QLabel" name="label">
+                   <property name="text">
+                    <string>脉冲当量:</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="1">
+                  <widget class="QLineEdit" name="units_lineEdit"/>
+                 </item>
+                 <item row="1" column="0">
+                  <widget class="QLabel" name="label">
+                   <property name="text">
+                    <string>起始速度:</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="1">
+                  <widget class="QLineEdit" name="lspeed_lineEdit"/>
+                 </item>
+                 <item row="2" column="0">
+                  <widget class="QLabel" name="label">
+                   <property name="text">
+                    <string>运动速度:</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="2" column="1">
+                  <widget class="QLineEdit" name="speed_lineEdit"/>
+                 </item>
+                 <item row="3" column="0">
+                  <widget class="QLabel" name="label">
+                   <property name="text">
+                    <string>加速度:</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="3" column="1">
+                  <widget class="QLineEdit" name="accel_lineEdit"/>
+                 </item>
+                 <item row="4" column="0">
+                  <widget class="QLabel" name="label">
+                   <property name="text">
+                    <string>减速度:</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="4" column="1">
+                  <widget class="QLineEdit" name="decel_lineEdit"/>
+                 </item>
+                 <item row="5" column="0">
+                  <widget class="QLabel" name="label">
+                   <property name="text">
+                    <string>S曲线程度:</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="5" column="1">
+                  <widget class="QLineEdit" name="sramp_lineEdit"/>
+                 </item>
+                </layout>
+               </widget>
+              </item>
+              <item>
+               <widget class="QGroupBox" name="motionControlGroup">
+                <property name="title">
+                 <string>运动控制</string>
+                </property>
+                <layout class="QVBoxLayout" name="motionControlLayout">
+                 <item>
+                  <layout class="QHBoxLayout" name="jogLayout">
+                   <item>
+                    <widget class="QLabel" name="label">
+                     <property name="text">
+                      <string>点动:</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QPushButton" name="jogPositive_pushButton">
+                     <property name="text">
+                      <string>JOG+</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QPushButton" name="jogNegative_pushButton">
+                     <property name="text">
+                      <string>JOG-</string>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
+                 </item>
+                 <item>
+                  <layout class="QHBoxLayout" name="relativeMoveLayout">
+                   <item>
+                    <widget class="QLabel" name="label">
+                     <property name="text">
+                      <string>相对移动:</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QLineEdit" name="distance_lineEdit"/>
+                   </item>
+                   <item>
+                    <widget class="QPushButton" name="moveRelative_pushButton">
+                     <property name="text">
+                      <string>执行移动</string>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
+                 </item>
+                 <item>
+                  <layout class="QHBoxLayout" name="commonOpsLayout">
+                   <item>
+                    <widget class="QPushButton" name="zeroPosition_pushButton">
+                     <property name="text">
+                      <string>位置清零</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QPushButton" name="stop_pushButton">
+                     <property name="styleSheet">
+                      <string notr="true">background-color: #F44336; color: white;</string>
+                     </property>
+                     <property name="text">
+                      <string>停止</string>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
+                 </item>
+                </layout>
+               </widget>
+              </item>
+              <item>
+               <widget class="QGroupBox" name="homingGroup">
+                <property name="title">
+                 <string>回零控制</string>
+                </property>
+                <layout class="QVBoxLayout" name="homingLayout">
+                 <item>
+                  <layout class="QFormLayout" name="homingParamsLayout">
+                   <item row="0" column="0">
+                    <widget class="QLabel" name="label">
+                     <property name="text">
+                      <string>回零模式:</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="0" column="1">
+                    <widget class="QComboBox" name="homingMode_comboBox"/>
+                   </item>
+                   <item row="1" column="0">
+                    <widget class="QLabel" name="label">
+                     <property name="text">
+                      <string>爬行速度:</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="1" column="1">
+                    <widget class="QLineEdit" name="homingCreepSpeed_lineEdit"/>
+                   </item>
+                   <item row="2" column="0">
+                    <widget class="QLabel" name="label">
+                     <property name="text">
+                      <string>回零IO口:</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="2" column="1">
+                    <widget class="QSpinBox" name="homingIo_spinBox">
+                     <property name="maximum">
+                      <number>999</number>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="3" column="0">
+                    <widget class="QLabel" name="label">
+                     <property name="text">
+                      <string>IO口逻辑:</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="3" column="1">
+                    <widget class="QComboBox" name="homingIoLogic_comboBox">
+                     <item>
+                      <property name="text">
+                       <string>常开</string>
+                      </property>
+                     </item>
+                     <item>
+                      <property name="text">
+                       <string>常闭</string>
+                      </property>
+                     </item>
+                    </widget>
+                   </item>
+                  </layout>
+                 </item>
+                 <item>
+                  <widget class="QPushButton" name="startHoming_pushButton">
+                   <property name="text">
+                    <string>开始回零</string>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </widget>
+              </item>
+              <item>
+               <spacer name="newAxisControlSpacer">
+                <property name="orientation">
+                 <enum>Qt::Vertical</enum>
+                </property>
+                <property name="sizeType">
+                 <enum>QSizePolicy::Expanding</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>20</width>
+                  <height>40</height>
+                 </size>
+                </property>
+               </spacer>
               </item>
              </layout>
             </widget>
@@ -662,7 +761,7 @@ QPushButton:checked { background-color: #4CAF50; color: white; }</string>
            <item>
             <widget class="QGroupBox" name="statusMonitorGroup">
              <property name="title">
-              <string>状态监控</string>
+              <string>轴状态监控</string>
              </property>
              <layout class="QVBoxLayout" name="statusMonitorLayout">
               <item>

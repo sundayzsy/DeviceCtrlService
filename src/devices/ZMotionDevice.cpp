@@ -1,10 +1,9 @@
-﻿#include "ZMotionDevice.h"
-#include <QDebug>
+﻿#include <QDebug>
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QTime>
-#include "zmotion.h" // 包含ZMotion库的基础定义
 #include "zauxdll2.h" // 包含ZMotion库的函数声明
+#include "ZMotionDevice.h"
 
 // ZMotion常量定义（如果头文件中没有定义）
 #ifndef ZMC_ETH
@@ -105,7 +104,9 @@ void ZMotionDevice::writeData2Device(const QString &key, const QString &value)
         return;
     }
     
-    processCommand(key, value);
+    // processCommand(key, value); // 不再使用基于字符串的命令处理
+    QString logMsg = QString("ZMotion writeData2Device received: key=%1, value=%2. This path is deprecated for UI control.").arg(key).arg(value);
+    emit sig_printLog(logMsg.toUtf8(), true);
 }
 
 void ZMotionDevice::writeText2Device(const QString &text)
@@ -132,51 +133,155 @@ void ZMotionDevice::onStatusTimer()
     }
 }
 
-void ZMotionDevice::moveAxisAbsolute(int axisId, double position, double speed)
+void ZMotionDevice::setAxisParameters(int axisId, double units, double speed, double accel, double decel, double sramp)
 {
     if (!m_zmcHandle || !m_enabledAxes.contains(axisId)) {
         return;
     }
-    
-    // 设置轴速度
-    int result = ZAux_Direct_SetSpeed(m_zmcHandle, axisId, speed);
+
+    int result;
+
+    // 设置脉冲当量
+    result = ZAux_Direct_SetUnits(m_zmcHandle, axisId, units);
     if (result != 0) {
-        handleZMotionError(result, QString("SetSpeed Axis%1").arg(axisId));
-        return;
+        handleZMotionError(result, QString("SetUnits Axis%1").arg(axisId));
     }
 
-    // 绝对位置移动
-    result = ZAux_Direct_Single_Move(m_zmcHandle, axisId, position);
+    // 设置速度
+    result = ZAux_Direct_SetSpeed(m_zmcHandle, axisId, speed);
     if (result != 0) {
-        handleZMotionError(result, QString("MoveAbs Axis%1").arg(axisId));
-        return;
+        handleZMotionError(result, QString("SetSpeed Axis%1").arg(axisId));
     }
-    
-    QString logMsg = QString("Axis%1 move absolute to %2 at speed %3").arg(axisId).arg(position).arg(speed);
+
+    // 设置加速度
+    result = ZAux_Direct_SetAccel(m_zmcHandle, axisId, accel);
+    if (result != 0) {
+        handleZMotionError(result, QString("SetAccel Axis%1").arg(axisId));
+    }
+
+    // 设置减速度
+    result = ZAux_Direct_SetDecel(m_zmcHandle, axisId, decel);
+    if (result != 0) {
+        handleZMotionError(result, QString("SetDecel Axis%1").arg(axisId));
+    }
+
+    // 设置S曲线时间
+    result = ZAux_Direct_SetSramp(m_zmcHandle, axisId, sramp);
+    if (result != 0) {
+        handleZMotionError(result, QString("SetSramp Axis%1").arg(axisId));
+    }
+
+    QString logMsg = QString("Axis%1 params set: Units=%2, Speed=%3, Accel=%4, Decel=%5, S-Ramp=%6")
+                         .arg(axisId).arg(units).arg(speed).arg(accel).arg(decel).arg(sramp);
     emit sig_printLog(logMsg.toUtf8(), true);
 }
 
-void ZMotionDevice::moveAxisRelative(int axisId, double distance, double speed)
+void ZMotionDevice::moveContinuous(int axisId, int direction)
 {
     if (!m_zmcHandle || !m_enabledAxes.contains(axisId)) {
         return;
     }
     
-    // 设置轴速度
-    int result = ZAux_Direct_SetSpeed(m_zmcHandle, axisId, speed);
-    if (result != 0) {
-        handleZMotionError(result, QString("SetSpeed Axis%1").arg(axisId));
+    // 检查轴是否空闲
+    int isIdle = 0;
+    if (ZAux_Direct_GetIfIdle(m_zmcHandle, axisId, &isIdle) == 0 && isIdle == 0) {
+        qWarning() << QString("ZMotion Axis %1 is busy, 'moveContinuous' command ignored.").arg(axisId);
         return;
     }
 
-    // 相对位置移动
-//    result = ZAux_Direct_Single_MoveRel(m_zmcHandle, axisId, distance);
-//    if (result != 0) {
-//        handleZMotionError(result, QString("MoveRel Axis%1").arg(axisId));
-//        return;
-//    }
+    // direction: 1 for positive, -1 for negative. API: 1 for positive, 0 for negative.
+    int apiDirection = (direction > 0) ? 1 : 0;
     
-    QString logMsg = QString("Axis%1 move relative %2 at speed %3").arg(axisId).arg(distance).arg(speed);
+    int result = ZAux_Direct_Single_Vmove(m_zmcHandle, axisId, apiDirection);
+    if (result != 0) {
+        handleZMotionError(result, QString("VMove Axis%1").arg(axisId));
+        return;
+    }
+
+    QString dirStr = (direction > 0) ? "positive" : "negative";
+    QString logMsg = QString("Axis%1 continuous move started in %2 direction").arg(axisId).arg(dirStr);
+    emit sig_printLog(logMsg.toUtf8(), true);
+}
+
+void ZMotionDevice::moveRelative(int axisId, double distance)
+{
+    if (!m_zmcHandle || !m_enabledAxes.contains(axisId)) {
+        return;
+    }
+
+    // 检查轴是否空闲
+    int isIdle = 0;
+    if (ZAux_Direct_GetIfIdle(m_zmcHandle, axisId, &isIdle) == 0 && isIdle == 0) {
+        qWarning() << QString("ZMotion Axis %1 is busy, 'moveRelative' command ignored.").arg(axisId);
+        return;
+    }
+
+    // ZAux库没有直接的相对运动指令，因此我们通过计算实现
+    // 1. 获取当前位置
+    float currentPos = 0.0f;
+    ZAux_Direct_GetDpos(m_zmcHandle, axisId, &currentPos);
+    
+    // 2. 计算目标绝对位置
+    double targetPos = currentPos + distance;
+
+    // 3. 使用绝对位置移动指令
+    int result = ZAux_Direct_Single_Move(m_zmcHandle, axisId, targetPos);
+    if (result != 0) {
+        handleZMotionError(result, QString("MoveRel (via Abs) Axis%1").arg(axisId));
+        return;
+    }
+
+    QString logMsg = QString("Axis%1 move relative by %2 (to %3)").arg(axisId).arg(distance).arg(targetPos);
+    emit sig_printLog(logMsg.toUtf8(), true);
+}
+
+void ZMotionDevice::startHoming(int axisId, int mode, int homingIoPort, bool invertIo, double creepSpeed)
+{
+    if (!m_zmcHandle || !m_enabledAxes.contains(axisId)) {
+        return;
+    }
+
+    // 检查轴是否空闲
+    int isIdle = 0;
+    if (ZAux_Direct_GetIfIdle(m_zmcHandle, axisId, &isIdle) == 0 && isIdle == 0) {
+        qWarning() << QString("ZMotion Axis %1 is busy, 'startHoming' command ignored.").arg(axisId);
+        return;
+    }
+
+    int result;
+
+    // 1. 设置爬行速度 (可选，但推荐)
+    result = ZAux_Direct_SetCreep(m_zmcHandle, axisId, creepSpeed);
+    if (result != 0) {
+        handleZMotionError(result, QString("SetCreep Axis%1").arg(axisId));
+        // 此处不返回，因为不是致命错误
+    }
+
+    // 2. 设置原点开关IO口
+    result = ZAux_Direct_SetDatumIn(m_zmcHandle, axisId, homingIoPort);
+    if (result != 0) {
+        handleZMotionError(result, QString("SetDatumIn Axis%1").arg(axisId));
+        return; // 这是关键步骤，失败则不继续
+    }
+
+    // 3. 设置IO口是否反转
+    // ZMC系列控制器默认原点信号为常闭(NC)，即低电平有效。如果使用常开(NO)传感器，则需要反转输入信号。
+    int invertValue = invertIo ? 1 : 0;
+    result = ZAux_Direct_SetInvertIn(m_zmcHandle, homingIoPort, invertValue);
+	if (result != 0) {
+        handleZMotionError(result, QString("SetInvertIn Port%1").arg(homingIoPort));
+        return;
+    }
+
+    // 4. 设置回零模式并启动
+    result = ZAux_Direct_Single_Datum(m_zmcHandle, axisId, mode);
+    if (result != 0) {
+        handleZMotionError(result, QString("Home Axis%1 with mode %2").arg(axisId).arg(mode));
+        return;
+    }
+
+    QString logMsg = QString("Axis%1 homing started: mode=%2, IO=%3, Invert=%4, Creep=%5")
+                         .arg(axisId).arg(mode).arg(homingIoPort).arg(invertIo).arg(creepSpeed);
     emit sig_printLog(logMsg.toUtf8(), true);
 }
 
@@ -197,6 +302,26 @@ void ZMotionDevice::stopAxis(int axisId)
     emit sig_printLog(logMsg.toUtf8(), true);
 }
 
+void ZMotionDevice::zeroPosition(int axisId)
+{
+    if (!m_zmcHandle || !m_enabledAxes.contains(axisId)) {
+        return;
+    }
+
+    int result = ZAux_Direct_SetDpos(m_zmcHandle, axisId, 0);
+    if (result != 0) {
+        handleZMotionError(result, QString("zeroPosition Axis%1").arg(axisId));
+        return;
+    }
+
+    // 手动更新内部缓存和UI，因为硬件状态可能不会立即通过轮询反映出来
+    m_axisPositions[axisId] = 0.0;
+    updateAxisData(axisId, "position", 0.0);
+
+    QString logMsg = QString("Axis%1 position zeroed").arg(axisId);
+    emit sig_printLog(logMsg.toUtf8(), true);
+}
+
 void ZMotionDevice::stopAllAxes()
 {
     if (!m_zmcHandle) {
@@ -211,41 +336,23 @@ void ZMotionDevice::stopAllAxes()
     emit sig_printLog("All axes emergency stopped", true);
 }
 
-void ZMotionDevice::homeAxis(int axisId)
-{
-    if (!m_zmcHandle || !m_enabledAxes.contains(axisId)) {
-        return;
-    }
-    
-    // ZAux库中没有直接的Home指令，这通常是一个更复杂的过程
-    // 这里暂时留空或发出警告
-    // int result = ZAux_Direct_Single_Home(m_zmcHandle, axisId, ...);
-    emit sig_printLog(QString("Homing for axis %1 is not implemented with ZAux API yet.").arg(axisId).toLocal8Bit(), false);
-    int result = 0; // 假设成功，避免错误处理
-    if (result != 0) {
-        handleZMotionError(result, QString("Home Axis%1").arg(axisId));
-        return;
-    }
-    
-    QString logMsg = QString("Axis%1 homing started").arg(axisId);
-    emit sig_printLog(logMsg.toUtf8(), true);
-}
 
-void ZMotionDevice::setOutput(int outputId, bool state)
+void ZMotionDevice::setDigitalOutput(int outputId, bool state)
 {
     if (!m_zmcHandle) {
         return;
     }
-    
-    int result = ZAux_Direct_SetOp(m_zmcHandle, outputId, state);
+
+    // state: true for ON (1), false for OFF (0)
+    int result = ZAux_Direct_SetOp(m_zmcHandle, outputId, state ? 1 : 0);
     if (result != 0) {
         handleZMotionError(result, QString("SetOutput %1").arg(outputId));
         return;
     }
-    
+
     m_outputStates[outputId] = state;
     updateIOData(outputId, "output", state);
-    
+
     QString logMsg = QString("Output%1 set to %2").arg(outputId).arg(state ? "ON" : "OFF");
     emit sig_printLog(logMsg.toUtf8(), true);
 }
@@ -327,47 +434,6 @@ void ZMotionDevice::readAllIOStatus()
     }
 }
 
-void ZMotionDevice::processCommand(const QString& key, const QString& value)
-{
-    QStringList parts = key.split('_');
-    if (parts.size() < 2) {
-        return;
-    }
-    
-    QString command = parts.last();
-    
-    // 解析轴命令
-    if (key.startsWith("axis")) {
-        int axisId = parts[0].mid(4).toInt(); // 从"axis0"中提取"0"
-        QStringList values = value.split(',');
-        
-        if (command == "move" && parts.size() >= 3) {
-            QString moveType = parts[1]; // abs 或 rel
-            double position = values[0].toDouble();
-            double speed = values.size() > 1 ? values[1].toDouble() : 10.0;
-            
-            if (moveType == "abs") {
-                moveAxisAbsolute(axisId, position, speed);
-            } else if (moveType == "rel") {
-                moveAxisRelative(axisId, position, speed);
-            }
-        } else if (command == "stop") {
-            stopAxis(axisId);
-        } else if (command == "home") {
-            homeAxis(axisId);
-        }
-    }
-    // 解析IO命令
-    else if (key.startsWith("output")) {
-        int outputId = key.mid(6).toInt(); // 从"output0"中提取"0"
-        bool state = (value == "1" || value.toLower() == "true" || value.toLower() == "on");
-        setOutput(outputId, state);
-    }
-    // 全局命令
-    else if (key == "stop_all") {
-        stopAllAxes();
-    }
-}
 
 void ZMotionDevice::updateAxisData(int axisId, const QString& parameter, const QVariant& value)
 {

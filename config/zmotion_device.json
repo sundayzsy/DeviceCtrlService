@@ -8,12 +8,12 @@
         "timeout": 5000
     },
     "axes": [
-        {"id": 0, "name": "X轴", "enabled": true, "maxSpeed": 100.0, "maxAccel": 1000.0},
-        {"id": 1, "name": "Y轴", "enabled": true, "maxSpeed": 100.0, "maxAccel": 1000.0},
-        {"id": 2, "name": "Z轴", "enabled": true, "maxSpeed": 50.0, "maxAccel": 500.0},
-        {"id": 3, "name": "A轴", "enabled": false, "maxSpeed": 360.0, "maxAccel": 3600.0},
-        {"id": 4, "name": "B轴", "enabled": false, "maxSpeed": 360.0, "maxAccel": 3600.0},
-        {"id": 5, "name": "C轴", "enabled": false, "maxSpeed": 360.0, "maxAccel": 3600.0}
+        {"id": 0, "name": "X轴", "enabled": true},
+        {"id": 1, "name": "Y轴", "enabled": true},
+        {"id": 2, "name": "Z轴", "enabled": true},
+        {"id": 3, "name": "A轴", "enabled": true},
+        {"id": 4, "name": "B轴", "enabled": false},
+        {"id": 5, "name": "C轴", "enabled": false}
     ],
     "io": {
         "inputCount": 16,

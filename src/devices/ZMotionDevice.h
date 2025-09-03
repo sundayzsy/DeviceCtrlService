@@ -5,9 +5,7 @@
 #include <QJsonObject>
 #include <QMap>
 #include <QTimer>
-
-// ZMotion基础类型定义
-#include "zmotion.h" // For ZMC_HANDLE
+#include "zmotion.h" // 包含ZMotion库的基础定义
 
 /**
  * @brief ZMotion运动控制卡设备类
@@ -31,25 +29,28 @@ public slots:
     void initInThread() override;
     void stop() override;
 
+    // 新的轴控制接口
+    void setAxisParameters(int axisId, double units, double speed, double accel, double decel, double sramp);
+    void moveContinuous(int axisId, int direction); // direction: 1 for positive, -1 for negative
+    void moveRelative(int axisId, double distance);
+    void startHoming(int axisId, int mode, int homingIoPort, bool invertIo, double creepSpeed);
+    void stopAxis(int axisId);
+    void zeroPosition(int axisId);
+    void setDigitalOutput(int outputId, bool state);
+
 private slots:
     void onStatusTimer();
 
 private:
     // 轴控制功能
-    void moveAxisAbsolute(int axisId, double position, double speed);
-    void moveAxisRelative(int axisId, double distance, double speed);
-    void stopAxis(int axisId);
     void stopAllAxes();
-    void homeAxis(int axisId);
-    
+
     // IO控制功能
-    void setOutput(int outputId, bool state);
     bool getInput(int inputId);
     
     // 状态读取和数据处理
     void readAllAxisStatus();
     void readAllIOStatus();
-    void processCommand(const QString& key, const QString& value);
     void updateAxisData(int axisId, const QString& parameter, const QVariant& value);
     void updateIOData(int ioId, const QString& type, bool state);
     

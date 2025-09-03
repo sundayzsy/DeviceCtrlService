@@ -53,6 +53,10 @@ FORMS += \
 RESOURCES += \
     resources.qrc
 
+# ZMotion库配置
+INCLUDEPATH += $$PWD/../3rdLib/zmotion
+LIBS += -L$$PWD/../3rdLib/zmotion -lzmotion
+
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
