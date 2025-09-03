@@ -1,4 +1,4 @@
-#include "DeviceManager.h"
+﻿#include "DeviceManager.h"
 /**
  * @file DeviceManager.cpp
  * @brief DeviceManager类的实现
@@ -9,6 +9,7 @@
 #include "devices/LSJDevice.h"
 #include "devices/JGQDevice.h"
 #include "devices/JGTDevice.h"
+#include "devices/ZMotionDevice.h"
 
 DeviceManager::DeviceManager(QObject *parent)
     : QObject(parent)
@@ -26,7 +27,7 @@ bool DeviceManager::addDevice(const QJsonObject& config)
     QString name = config["device_name"].toString();
     QString protocol = config["protocol"].toString();
 
-    if (id.isEmpty() || protocol.isEmpty() || m_devices.contains(id)) {
+    if (id.isEmpty() || m_devices.contains(id)) {
         return false;
     }
 
@@ -37,6 +38,8 @@ bool DeviceManager::addDevice(const QJsonObject& config)
         device = new JGQDevice(id, name, config);
     } else if (protocol == "tcp_socket") {
         device = new JGTDevice(id, name, config);
+    } else if (protocol == "zmotion_api") {
+        device = new ZMotionDevice(id, name, config);
     } else {
         // TODO: Add support for other protocols
     }

@@ -73,7 +73,7 @@ void JGTDevice::writeText2Device(const QString &text)
 
     if (m_tcpSocket && m_tcpSocket->state() == QAbstractSocket::ConnectedState)
     {
-        QByteArray bytes = text.toLatin1();
+        QByteArray bytes = text.toUtf8();
         m_tcpSocket->write(bytes);
         emit sig_printLog(bytes,true);
     }
@@ -96,7 +96,7 @@ void JGTDevice::onReadyRead()
     if (!data.isEmpty()) {
         emit sig_printLog(data, false);
         // 如果需要，可以在这里直接调用解析逻辑
-        // parseResponse(data);
+//         parseResponse(data);
     }
 }
 

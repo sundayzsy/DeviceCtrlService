@@ -41,6 +41,10 @@ private slots:
     void on_sendBtn_clicked();
     void onPrintLog(const QByteArray &bytes, bool isWrite);
     void onReconnectButtonClicked(const QString& deviceId);
+    void on_jgtClearLogBtn_clicked();
+    void on_jgtAutoScrollCheckBox_toggled(bool checked);
+    void on_jgtHexDisplayCheckBox_toggled(bool checked);
+    void on_zmotionHexDisplayCheckBox_toggled(bool checked);
 
 protected:
     void closeEvent(QCloseEvent *event) override;
@@ -52,6 +56,12 @@ private:
     void loadDevice(const QString& filePath);
     void updateDataTable(const QString& deviceId);
     QByteArray toHex(const QByteArray &bytes);
+    
+    void initDeivceTableUI();
+    void initModbusTableUI();
+    void initZMotionUI();
+    void updateZMotionAxisStatus();
+    void updateZMotionIOStatus();
 
 private:
     Ui::MainWindow *ui;                 ///< 主窗口的UI

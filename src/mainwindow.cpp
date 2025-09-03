@@ -19,6 +19,7 @@
 #include <QTableWidget>
 #include <QPushButton>
 #include <QTime>
+#include <QTextCursor>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -29,45 +30,26 @@ MainWindow::MainWindow(QWidget *parent)
     , m_isInternalChange(false)
 {
     ui->setupUi(this);
-
+//    showMaximized();
     setWindowTitle("设备通信控制服务系统");
-    // 配置新的设备列表表格
-    ui->deviceTableWidget->setColumnCount(3);
-    ui->deviceTableWidget->setHorizontalHeaderLabels({"Device Name", "Status", "Action"});
-    ui->deviceTableWidget->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
-    ui->deviceTableWidget->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
-    ui->deviceTableWidget->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Stretch);
-    ui->deviceTableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
-    ui->deviceTableWidget->setSelectionMode(QAbstractItemView::SingleSelection);
-    ui->deviceTableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
 
-    ui->splitter->setStretchFactor(0, 2); // 左侧比例为1
-    ui->splitter->setStretchFactor(1, 5); // 右侧宽度是左侧的3倍
-
-    ui->stackedWidget->setCurrentIndex(0);
-
-    // 设置数据表格
-    ui->dataTableWidget->setColumnCount(7);
-    ui->dataTableWidget->setHorizontalHeaderLabels({"Address", "Bitpos", "Length", "Key", "Name", "Access", "Value"});
-    QHeaderView* header = ui->dataTableWidget->horizontalHeader();
-    header->setSectionResizeMode(0, QHeaderView::ResizeToContents); // Address
-    header->setSectionResizeMode(1, QHeaderView::ResizeToContents); // Bitpos
-    header->setSectionResizeMode(2, QHeaderView::ResizeToContents); // Length
-    header->setSectionResizeMode(3, QHeaderView::Stretch);          // Key
-    header->setSectionResizeMode(4, QHeaderView::Stretch);          // Name
-    header->setSectionResizeMode(5, QHeaderView::ResizeToContents); // Access
-    header->setSectionResizeMode(6, QHeaderView::Stretch);          // Value
+    initDeivceTableUI();
+    initModbusTableUI();
+    initZMotionUI();
 
     // 连接信号和槽
     connect(ui->dataTableWidget, &QTableWidget::cellChanged, this, &MainWindow::onTableCellChanged);
     connect(ui->deviceTableWidget, &QTableWidget::itemSelectionChanged, this, &MainWindow::onDeviceSelectionChanged);
     connect(m_dataManager, &DataManager::dataUpdated, this, &MainWindow::onDeviceDataUpdated);
 
+    ui->stackedWidget->setCurrentIndex(0);
+
     // 自动加载默认设备
     QString configPath = QCoreApplication::applicationDirPath() + "/config/";
     loadDevice(QDir::toNativeSeparators(configPath + "lsj_device.json"));
     loadDevice(QDir::toNativeSeparators(configPath + "jgq_device.json"));
     loadDevice(QDir::toNativeSeparators(configPath + "jgt_device.json"));
+    loadDevice(QDir::toNativeSeparators(configPath + "zmotion_device.json"));
 }
 
 MainWindow::~MainWindow()
@@ -146,6 +128,10 @@ void MainWindow::onDeviceSelectionChanged()
         {
             ui->stackedWidget->setCurrentIndex(1);
         }
+        else if(deviceId == "zmotion_001")
+        {
+            ui->stackedWidget->setCurrentIndex(2);
+        }
     }
 }
 
@@ -214,6 +200,37 @@ QByteArray MainWindow::toHex(const QByteArray &bytes)
     return hexBytes;
 }
 
+void MainWindow::initDeivceTableUI()
+{
+    // 配置新的设备列表表格
+    ui->deviceTableWidget->setColumnCount(3);
+    ui->deviceTableWidget->setHorizontalHeaderLabels({"Device Name", "Status", "Action"});
+    ui->deviceTableWidget->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
+    ui->deviceTableWidget->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
+    ui->deviceTableWidget->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Stretch);
+    ui->deviceTableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
+    ui->deviceTableWidget->setSelectionMode(QAbstractItemView::SingleSelection);
+    ui->deviceTableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
+
+//    ui->splitter->setStretchFactor(0, 2); // 左侧比例为1
+//    ui->splitter->setStretchFactor(1, 5); // 右侧宽度是左侧的3倍
+}
+
+void MainWindow::initModbusTableUI()
+{
+    // 设置数据表格
+    ui->dataTableWidget->setColumnCount(7);
+    ui->dataTableWidget->setHorizontalHeaderLabels({"Address", "Bitpos", "Length", "Key", "Name", "Access", "Value"});
+    QHeaderView* header = ui->dataTableWidget->horizontalHeader();
+    header->setSectionResizeMode(0, QHeaderView::ResizeToContents); // Address
+    header->setSectionResizeMode(1, QHeaderView::ResizeToContents); // Bitpos
+    header->setSectionResizeMode(2, QHeaderView::ResizeToContents); // Length
+    header->setSectionResizeMode(3, QHeaderView::Stretch);          // Key
+    header->setSectionResizeMode(4, QHeaderView::Stretch);          // Name
+    header->setSectionResizeMode(5, QHeaderView::ResizeToContents); // Access
+    header->setSectionResizeMode(6, QHeaderView::Stretch);          // Value
+}
+
 
 void MainWindow::onDeviceDataUpdated(const QString& deviceId, const QString& key, const QVariant& value)
 {
@@ -227,7 +244,51 @@ void MainWindow::onDeviceDataUpdated(const QString& deviceId, const QString& key
         return;
     }
 
-    if (m_dataRowMap.contains(key)) {
+    // 处理ZMotion设备的特殊数据更新
+    if (deviceId == "zmotion_001" && ui->stackedWidget->currentIndex() == 2) {
+        // 处理轴位置数据
+        if (key.contains("_position")) {
+            int axisId = key.mid(4, 1).toInt(); // 从"axis0_position"中提取轴号
+            if (axisId < ui->axisStatusTable->rowCount()) {
+                ui->axisStatusTable->item(axisId, 1)->setText(QString::number(value.toDouble(), 'f', 3));
+            }
+        }
+        // 处理轴状态数据
+        else if (key.contains("_status")) {
+            int axisId = key.mid(4, 1).toInt();
+            if (axisId < ui->axisStatusTable->rowCount()) {
+                int status = value.toInt();
+                QString statusText = (status == 0) ? "停止" : ((status & 0x01) ? "运动中" : "就绪");
+                ui->axisStatusTable->item(axisId, 3)->setText(statusText);
+            }
+        }
+        // 处理输入IO状态
+        else if (key.startsWith("input")) {
+            int inputId = key.mid(5).toInt(); // 从"input0"中提取IO号
+            if (inputId < 8) {
+                QLabel* inputLed = findChild<QLabel*>(QString("input%1Led").arg(inputId));
+                if (inputLed) {
+                    bool state = (value.toString() == "1");
+                    if (state) {
+                        inputLed->setStyleSheet("QLabel { background-color: #4CAF50; color: white; border: 1px solid #BDBDBD; border-radius: 3px; padding: 2px; }");
+                    } else {
+                        inputLed->setStyleSheet("QLabel { background-color: #E0E0E0; border: 1px solid #BDBDBD; border-radius: 3px; padding: 2px; }");
+                    }
+                }
+            }
+        }
+        
+        // 在ZMotion日志中显示数据更新
+        QString logMsg = QString("[%1] %2 = %3").arg(QTime::currentTime().toString("hh:mm:ss")).arg(key).arg(value.toString());
+        ui->zmotionLogEdit->appendPlainText(logMsg);
+        
+        // 自动滚动到底部
+        if (ui->autoScrollCheckBox->isChecked()) {
+            ui->zmotionLogEdit->moveCursor(QTextCursor::End);
+        }
+    }
+    // 处理其他设备的数据表格更新
+    else if (m_dataRowMap.contains(key)) {
         int dataRow = m_dataRowMap[key];
         m_isInternalChange = true;
         if(ui->dataTableWidget->item(dataRow, 6))
@@ -271,7 +332,7 @@ void MainWindow::onDeviceConnectionChanged(const QString& deviceId, bool connect
             QTableWidgetItem* statusItem = ui->deviceTableWidget->item(row, 1);
             if (statusItem) {
                 statusItem->setText(connected ? "已连接" : "未连接");
-                statusItem->setForeground(connected ? (connected ? Qt::darkGreen : Qt::red) : Qt::black);
+                statusItem->setForeground(connected ? Qt::darkGreen : Qt::red);
             }
             return; // Found and updated
         }
@@ -297,19 +358,53 @@ void MainWindow::onPrintLog(const QByteArray &bytes, bool isWrite)
     if(bytes.isEmpty())
         return;
 
-    if(isWrite)
-    {
-        ui->logEdit->appendPlainText(QTime::currentTime().toString(tr("hh:mm:ss")));
-        ui->logEdit->appendPlainText(QString(tr("Send(text): ")) + QString::fromUtf8(bytes));
-        ui->logEdit->appendPlainText(QString(tr("Send(hex ): ")) + toHex(bytes));
-        ui->logEdit->appendPlainText(QString(" "));
+    Device* senderDevice = qobject_cast<Device*>(sender());
+    if (!senderDevice) {
+        return; // 无法确定发送者
     }
-    else
-    {
-        ui->logEdit->appendPlainText(QTime::currentTime().toString(tr("hh:mm:ss")));
-        ui->logEdit->appendPlainText(QString(tr("Recv(text): ")) + QString::fromUtf8(bytes));
-        ui->logEdit->appendPlainText(QString(tr("Recv(hex ): ")) + toHex(bytes));
-        ui->logEdit->appendPlainText(QString(" "));
+    QString senderDeviceId = senderDevice->deviceId();
+
+    QPlainTextEdit* logEdit = nullptr;
+    bool hexDisplay = false;
+    bool autoScroll = false;
+
+    // 根据设备ID选择UI控件和配置
+    if (senderDeviceId == "zmotion_001") {
+        logEdit = ui->zmotionLogEdit;
+        hexDisplay = ui->zmotionHexDisplayCheckBox->isChecked();
+        autoScroll = ui->autoScrollCheckBox->isChecked();
+    } else if (senderDeviceId == "jgt_001") {
+        logEdit = ui->logEdit;
+        hexDisplay = ui->jgtHexDisplayCheckBox->isChecked();
+        autoScroll = ui->jgtAutoScrollCheckBox->isChecked();
+    } else {
+        return; // 没有对应的日志界面
+    }
+
+    if (!logEdit) return;
+
+    // 准备日志内容
+    QString timeStr = QTime::currentTime().toString("hh:mm:ss.zzz");
+    QString direction = isWrite ? "Send" : "Recv";
+    
+    // 始终显示文本内容
+    QString textContent = QString::fromUtf8(bytes);
+    QString logMessage = QString("[%1] %2(text): %3").arg(timeStr).arg(direction).arg(textContent);
+    logEdit->appendPlainText(logMessage);
+
+    // 如果勾选了Hex，则额外显示Hex内容
+    if (hexDisplay) {
+        QString hexContent = toHex(bytes);
+        QString hexLogMessage = QString("[%1] %2(hex): %3").arg(timeStr).arg(direction).arg(hexContent);
+        logEdit->appendPlainText(hexLogMessage);
+    }
+
+    // 追加一个空行以分隔日志条目
+    logEdit->appendPlainText("");
+
+    // 滚动
+    if (autoScroll) {
+        logEdit->moveCursor(QTextCursor::End);
     }
 }
 
@@ -339,4 +434,173 @@ void MainWindow::onReconnectButtonClicked(const QString &deviceId)
         // 使用invokeMethod安全地调用工作线程中的连接方法
         QMetaObject::invokeMethod(device, "connectDevice", Qt::QueuedConnection);
     }
+}
+
+
+void MainWindow::initZMotionUI()
+{
+    // 初始化ZMotion页面UI
+    ui->axisStatusTable->setRowCount(6);
+    ui->axisStatusTable->setHorizontalHeaderLabels({"轴号", "位置", "速度", "状态"});
+    ui->axisStatusTable->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
+    ui->axisStatusTable->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
+    ui->axisStatusTable->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Stretch);
+    ui->axisStatusTable->horizontalHeader()->setSectionResizeMode(3, QHeaderView::Stretch);
+    for (int i = 0; i < 6; i++) {
+        ui->axisStatusTable->setItem(i, 0, new QTableWidgetItem(QString("轴%1").arg(i)));
+        ui->axisStatusTable->setItem(i, 1, new QTableWidgetItem("0.000"));
+        ui->axisStatusTable->setItem(i, 2, new QTableWidgetItem("0.000"));
+        ui->axisStatusTable->setItem(i, 3, new QTableWidgetItem("未知"));
+
+        for (int j = 0; j < 4; j++) {
+            if(ui->axisStatusTable->item(i,j)) {
+                ui->axisStatusTable->item(i, j)->setFlags(ui->axisStatusTable->item(i, j)->flags() & ~Qt::ItemIsEditable);
+            }
+        }
+    }
+    ui->axisStatusTable->resizeColumnsToContents();
+
+
+    // 轴控制按钮连接
+    connect(ui->moveAbsBtn, &QPushButton::clicked, this, [this]() {
+        int axisId = ui->axisComboBox->currentIndex();
+        double position = ui->absPosSpinBox->value();
+        double speed = ui->speedSpinBox->value();
+        
+        QList<QTableWidgetItem*> selectedItems = ui->deviceTableWidget->selectedItems();
+        if (!selectedItems.isEmpty()) {
+            QString deviceId = selectedItems.first()->data(Qt::UserRole).toString();
+            Device* device = m_deviceManager->getDevice(deviceId);
+            if (device) {
+                QString command = QString("axis%1_abs_move").arg(axisId);
+                QString value = QString("%1,%2").arg(position).arg(speed);
+                QMetaObject::invokeMethod(device, "writeData2Device", Qt::QueuedConnection,
+                                          Q_ARG(QString, command), Q_ARG(QString, value));
+            }
+        }
+    });
+    
+    connect(ui->moveRelBtn, &QPushButton::clicked, this, [this]() {
+        int axisId = ui->axisComboBox->currentIndex();
+        double distance = ui->relPosSpinBox->value();
+        double speed = ui->speedSpinBox->value();
+        
+        QList<QTableWidgetItem*> selectedItems = ui->deviceTableWidget->selectedItems();
+        if (!selectedItems.isEmpty()) {
+            QString deviceId = selectedItems.first()->data(Qt::UserRole).toString();
+            Device* device = m_deviceManager->getDevice(deviceId);
+            if (device) {
+                QString command = QString("axis%1_rel_move").arg(axisId);
+                QString value = QString("%1,%2").arg(distance).arg(speed);
+                QMetaObject::invokeMethod(device, "writeData2Device", Qt::QueuedConnection,
+                                          Q_ARG(QString, command), Q_ARG(QString, value));
+            }
+        }
+    });
+    
+    connect(ui->stopAxisBtn, &QPushButton::clicked, this, [this]() {
+        int axisId = ui->axisComboBox->currentIndex();
+        
+        QList<QTableWidgetItem*> selectedItems = ui->deviceTableWidget->selectedItems();
+        if (!selectedItems.isEmpty()) {
+            QString deviceId = selectedItems.first()->data(Qt::UserRole).toString();
+            Device* device = m_deviceManager->getDevice(deviceId);
+            if (device) {
+                QString command = QString("axis%1_stop").arg(axisId);
+                QMetaObject::invokeMethod(device, "writeData2Device", Qt::QueuedConnection,
+                                          Q_ARG(QString, command), Q_ARG(QString, "1"));
+            }
+        }
+    });
+    
+    connect(ui->homeAxisBtn, &QPushButton::clicked, this, [this]() {
+        int axisId = ui->axisComboBox->currentIndex();
+        
+        QList<QTableWidgetItem*> selectedItems = ui->deviceTableWidget->selectedItems();
+        if (!selectedItems.isEmpty()) {
+            QString deviceId = selectedItems.first()->data(Qt::UserRole).toString();
+            Device* device = m_deviceManager->getDevice(deviceId);
+            if (device) {
+                QString command = QString("axis%1_home").arg(axisId);
+                QMetaObject::invokeMethod(device, "writeData2Device", Qt::QueuedConnection,
+                                          Q_ARG(QString, command), Q_ARG(QString, "1"));
+            }
+        }
+    });
+    
+    connect(ui->stopAllBtn, &QPushButton::clicked, this, [this]() {
+        QList<QTableWidgetItem*> selectedItems = ui->deviceTableWidget->selectedItems();
+        if (!selectedItems.isEmpty()) {
+            QString deviceId = selectedItems.first()->data(Qt::UserRole).toString();
+            Device* device = m_deviceManager->getDevice(deviceId);
+            if (device) {
+                QMetaObject::invokeMethod(device, "writeData2Device", Qt::QueuedConnection,
+                                          Q_ARG(QString, "stop_all"), Q_ARG(QString, "1"));
+            }
+        }
+    });
+    
+    // 输出控制按钮连接
+    QList<QPushButton*> outputButtons = {
+        ui->output0Btn, ui->output1Btn, ui->output2Btn, ui->output3Btn,
+        ui->output4Btn, ui->output5Btn, ui->output6Btn, ui->output7Btn
+    };
+    
+    for (int i = 0; i < outputButtons.size(); i++) {
+        connect(outputButtons[i], &QPushButton::toggled, this, [this, i](bool checked) {
+            QList<QTableWidgetItem*> selectedItems = ui->deviceTableWidget->selectedItems();
+            if (!selectedItems.isEmpty()) {
+                QString deviceId = selectedItems.first()->data(Qt::UserRole).toString();
+                Device* device = m_deviceManager->getDevice(deviceId);
+                if (device) {
+                    QString command = QString("output%1").arg(i);
+                    QString value = checked ? "1" : "0";
+                    QMetaObject::invokeMethod(device, "writeData2Device", Qt::QueuedConnection,
+                                              Q_ARG(QString, command), Q_ARG(QString, value));
+                }
+            }
+        });
+    }
+    
+    // 日志工具栏按钮连接
+    connect(ui->clearLogBtn, &QPushButton::clicked, this, [this]() {
+        ui->zmotionLogEdit->clear();
+    });
+}
+
+
+void MainWindow::updateZMotionAxisStatus()
+{
+    // 这个方法会在接收到设备数据更新时被调用
+    // 具体实现可以根据实际需要进行扩展
+}
+
+void MainWindow::updateZMotionIOStatus()
+{
+    // 这个方法会在接收到IO状态更新时被调用
+    // 具体实现可以根据实际需要进行扩展
+}
+
+
+void MainWindow::on_jgtClearLogBtn_clicked()
+{
+    ui->logEdit->clear();
+}
+
+void MainWindow::on_jgtAutoScrollCheckBox_toggled(bool checked)
+{
+    Q_UNUSED(checked);
+    // 实际的滚动逻辑在 onPrintLog 中处理
+}
+
+void MainWindow::on_jgtHexDisplayCheckBox_toggled(bool checked)
+{
+    Q_UNUSED(checked);
+    // 实际的显示逻辑在 onPrintLog 中处理
+}
+
+void MainWindow::on_zmotionHexDisplayCheckBox_toggled(bool checked)
+{
+    Q_UNUSED(checked);
+    // 实际的显示逻辑在 onPrintLog 中处理
 }

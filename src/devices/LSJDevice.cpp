@@ -221,12 +221,12 @@ void LSJDevice::generatePollingRequests()
 
 void LSJDevice::initDataMap()
 {
-    // 从JSON配置中加载寄存器信息
+    int addrOffSet = m_config["modbus_offset"].toInt();
     QJsonArray registers = m_config["registers"].toArray();
     for (const QJsonValue& value : registers)
     {
         QJsonObject obj = value.toObject();
-        quint16 address = obj["address"].toInt();
+        quint16 address = obj["address"].toInt() + addrOffSet;
         QString key = obj["key"].toString();
         QString name = obj["name"].toString();
         quint16 length = obj["length"].toInt();

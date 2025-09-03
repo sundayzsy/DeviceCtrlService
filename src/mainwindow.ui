@@ -23,7 +23,7 @@
       <widget class="QTableWidget" name="deviceTableWidget"/>
       <widget class="QStackedWidget" name="stackedWidget">
        <property name="currentIndex">
-        <number>1</number>
+        <number>2</number>
        </property>
        <widget class="QWidget" name="page_1">
         <layout class="QHBoxLayout" name="horizontalLayout_2">
@@ -93,7 +93,7 @@
               <property name="title">
                <string>日志</string>
               </property>
-              <layout class="QHBoxLayout" name="horizontalLayout_4">
+              <layout class="QVBoxLayout" name="verticalLayout_jgt_log">
                <item>
                 <widget class="QPlainTextEdit" name="logEdit">
                  <property name="sizePolicy">
@@ -102,7 +102,62 @@
                    <verstretch>0</verstretch>
                   </sizepolicy>
                  </property>
+                 <property name="font">
+                  <font>
+                   <family>Consolas</family>
+                   <pointsize>9</pointsize>
+                  </font>
+                 </property>
+                 <property name="styleSheet">
+                  <string notr="true">QPlainTextEdit {
+    background-color: #1E1E1E;
+    color: #FFFFFF;
+    border: 1px solid #3E3E3E;
+    selection-background-color: #264F78;
+}</string>
+                 </property>
                 </widget>
+               </item>
+               <item>
+                <layout class="QHBoxLayout" name="horizontalLayout_jgt_log_controls">
+                 <item>
+                  <widget class="QPushButton" name="jgtClearLogBtn">
+                   <property name="text">
+                    <string>清除日志</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <spacer name="horizontalSpacer_jgt">
+                   <property name="orientation">
+                    <enum>Qt::Horizontal</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>40</width>
+                     <height>20</height>
+                    </size>
+                   </property>
+                  </spacer>
+                 </item>
+                 <item>
+                  <widget class="QCheckBox" name="jgtAutoScrollCheckBox">
+                   <property name="text">
+                    <string>自动滚动</string>
+                   </property>
+                   <property name="checked">
+                    <bool>true</bool>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QCheckBox" name="jgtHexDisplayCheckBox">
+                   <property name="text">
+                    <string>显示Hex</string>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
                </item>
               </layout>
              </widget>
@@ -129,6 +184,14 @@
                      <verstretch>0</verstretch>
                     </sizepolicy>
                    </property>
+                   <property name="styleSheet">
+                    <string notr="true">QPlainTextEdit {
+    background-color: #1E1E1E;
+    color: #FFFFFF;
+    border: 1px solid #3E3E3E;
+    selection-background-color: #264F78;
+}</string>
+                   </property>
                   </widget>
                  </item>
                  <item>
@@ -142,6 +205,583 @@
                </widget>
               </item>
              </layout>
+            </item>
+           </layout>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="page_zmotion">
+        <layout class="QVBoxLayout" name="zmotionMainLayout">
+         <property name="spacing">
+          <number>6</number>
+         </property>
+         <property name="leftMargin">
+          <number>6</number>
+         </property>
+         <property name="topMargin">
+          <number>6</number>
+         </property>
+         <property name="rightMargin">
+          <number>6</number>
+         </property>
+         <property name="bottomMargin">
+          <number>6</number>
+         </property>
+         <item>
+          <layout class="QHBoxLayout" name="controlAreaLayout">
+           <property name="spacing">
+            <number>6</number>
+           </property>
+           <item>
+            <widget class="QGroupBox" name="axisControlGroup">
+             <property name="title">
+              <string>轴控制</string>
+             </property>
+             <layout class="QGridLayout" name="axisControlLayout">
+              <item row="0" column="0">
+               <widget class="QLabel" name="axisLabel">
+                <property name="text">
+                 <string>选择轴:</string>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="1">
+               <widget class="QComboBox" name="axisComboBox">
+                <item>
+                 <property name="text">
+                  <string>X轴 (0)</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>Y轴 (1)</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>Z轴 (2)</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>A轴 (3)</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>B轴 (4)</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>C轴 (5)</string>
+                 </property>
+                </item>
+               </widget>
+              </item>
+              <item row="1" column="0">
+               <widget class="QLabel" name="absPosLabel">
+                <property name="text">
+                 <string>绝对位置:</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="1">
+               <widget class="QDoubleSpinBox" name="absPosSpinBox">
+                <property name="suffix">
+                 <string> mm</string>
+                </property>
+                <property name="decimals">
+                 <number>3</number>
+                </property>
+                <property name="minimum">
+                 <double>-999999.000000000000000</double>
+                </property>
+                <property name="maximum">
+                 <double>999999.000000000000000</double>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="2">
+               <widget class="QPushButton" name="moveAbsBtn">
+                <property name="styleSheet">
+                 <string notr="true">QPushButton { background-color: #4CAF50; color: white; }</string>
+                </property>
+                <property name="text">
+                 <string>绝对移动</string>
+                </property>
+               </widget>
+              </item>
+              <item row="2" column="0">
+               <widget class="QLabel" name="relPosLabel">
+                <property name="text">
+                 <string>相对距离:</string>
+                </property>
+               </widget>
+              </item>
+              <item row="2" column="1">
+               <widget class="QDoubleSpinBox" name="relPosSpinBox">
+                <property name="suffix">
+                 <string> mm</string>
+                </property>
+                <property name="decimals">
+                 <number>3</number>
+                </property>
+                <property name="minimum">
+                 <double>-999999.000000000000000</double>
+                </property>
+                <property name="maximum">
+                 <double>999999.000000000000000</double>
+                </property>
+               </widget>
+              </item>
+              <item row="2" column="2">
+               <widget class="QPushButton" name="moveRelBtn">
+                <property name="styleSheet">
+                 <string notr="true">QPushButton { background-color: #2196F3; color: white; }</string>
+                </property>
+                <property name="text">
+                 <string>相对移动</string>
+                </property>
+               </widget>
+              </item>
+              <item row="3" column="0">
+               <widget class="QLabel" name="speedLabel">
+                <property name="text">
+                 <string>移动速度:</string>
+                </property>
+               </widget>
+              </item>
+              <item row="3" column="1">
+               <widget class="QDoubleSpinBox" name="speedSpinBox">
+                <property name="suffix">
+                 <string> mm/s</string>
+                </property>
+                <property name="minimum">
+                 <double>0.100000000000000</double>
+                </property>
+                <property name="maximum">
+                 <double>1000.000000000000000</double>
+                </property>
+                <property name="value">
+                 <double>10.000000000000000</double>
+                </property>
+               </widget>
+              </item>
+              <item row="4" column="0" colspan="3">
+               <layout class="QHBoxLayout" name="controlButtonLayout">
+                <item>
+                 <widget class="QPushButton" name="stopAxisBtn">
+                  <property name="styleSheet">
+                   <string notr="true">QPushButton { background-color: #FF9800; color: white; }</string>
+                  </property>
+                  <property name="text">
+                   <string>停止轴</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="homeAxisBtn">
+                  <property name="styleSheet">
+                   <string notr="true">QPushButton { background-color: #9C27B0; color: white; }</string>
+                  </property>
+                  <property name="text">
+                   <string>回零</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="stopAllBtn">
+                  <property name="styleSheet">
+                   <string notr="true">QPushButton { background-color: #F44336; color: white; font-weight: bold; }</string>
+                  </property>
+                  <property name="text">
+                   <string>急停所有轴</string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+             </layout>
+            </widget>
+           </item>
+           <item>
+            <widget class="QGroupBox" name="ioControlGroup">
+             <property name="title">
+              <string>IO控制</string>
+             </property>
+             <layout class="QVBoxLayout" name="ioControlLayout">
+              <item>
+               <widget class="QLabel" name="outputLabel">
+                <property name="styleSheet">
+                 <string notr="true">font-weight: bold;</string>
+                </property>
+                <property name="text">
+                 <string>输出控制:</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <layout class="QGridLayout" name="outputGridLayout">
+                <item row="0" column="0">
+                 <widget class="QPushButton" name="output0Btn">
+                  <property name="styleSheet">
+                   <string notr="true">QPushButton { background-color: #E0E0E0; }
+QPushButton:checked { background-color: #4CAF50; color: white; }</string>
+                  </property>
+                  <property name="text">
+                   <string>OUT0</string>
+                  </property>
+                  <property name="checkable">
+                   <bool>true</bool>
+                  </property>
+                 </widget>
+                </item>
+                <item row="0" column="1">
+                 <widget class="QPushButton" name="output1Btn">
+                  <property name="styleSheet">
+                   <string notr="true">QPushButton { background-color: #E0E0E0; }
+QPushButton:checked { background-color: #4CAF50; color: white; }</string>
+                  </property>
+                  <property name="text">
+                   <string>OUT1</string>
+                  </property>
+                  <property name="checkable">
+                   <bool>true</bool>
+                  </property>
+                 </widget>
+                </item>
+                <item row="0" column="2">
+                 <widget class="QPushButton" name="output2Btn">
+                  <property name="styleSheet">
+                   <string notr="true">QPushButton { background-color: #E0E0E0; }
+QPushButton:checked { background-color: #4CAF50; color: white; }</string>
+                  </property>
+                  <property name="text">
+                   <string>OUT2</string>
+                  </property>
+                  <property name="checkable">
+                   <bool>true</bool>
+                  </property>
+                 </widget>
+                </item>
+                <item row="0" column="3">
+                 <widget class="QPushButton" name="output3Btn">
+                  <property name="styleSheet">
+                   <string notr="true">QPushButton { background-color: #E0E0E0; }
+QPushButton:checked { background-color: #4CAF50; color: white; }</string>
+                  </property>
+                  <property name="text">
+                   <string>OUT3</string>
+                  </property>
+                  <property name="checkable">
+                   <bool>true</bool>
+                  </property>
+                 </widget>
+                </item>
+                <item row="1" column="0">
+                 <widget class="QPushButton" name="output4Btn">
+                  <property name="styleSheet">
+                   <string notr="true">QPushButton { background-color: #E0E0E0; }
+QPushButton:checked { background-color: #4CAF50; color: white; }</string>
+                  </property>
+                  <property name="text">
+                   <string>OUT4</string>
+                  </property>
+                  <property name="checkable">
+                   <bool>true</bool>
+                  </property>
+                 </widget>
+                </item>
+                <item row="1" column="1">
+                 <widget class="QPushButton" name="output5Btn">
+                  <property name="styleSheet">
+                   <string notr="true">QPushButton { background-color: #E0E0E0; }
+QPushButton:checked { background-color: #4CAF50; color: white; }</string>
+                  </property>
+                  <property name="text">
+                   <string>OUT5</string>
+                  </property>
+                  <property name="checkable">
+                   <bool>true</bool>
+                  </property>
+                 </widget>
+                </item>
+                <item row="1" column="2">
+                 <widget class="QPushButton" name="output6Btn">
+                  <property name="styleSheet">
+                   <string notr="true">QPushButton { background-color: #E0E0E0; }
+QPushButton:checked { background-color: #4CAF50; color: white; }</string>
+                  </property>
+                  <property name="text">
+                   <string>OUT6</string>
+                  </property>
+                  <property name="checkable">
+                   <bool>true</bool>
+                  </property>
+                 </widget>
+                </item>
+                <item row="1" column="3">
+                 <widget class="QPushButton" name="output7Btn">
+                  <property name="styleSheet">
+                   <string notr="true">QPushButton { background-color: #E0E0E0; }
+QPushButton:checked { background-color: #4CAF50; color: white; }</string>
+                  </property>
+                  <property name="text">
+                   <string>OUT7</string>
+                  </property>
+                  <property name="checkable">
+                   <bool>true</bool>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+              <item>
+               <widget class="QLabel" name="inputLabel">
+                <property name="styleSheet">
+                 <string notr="true">font-weight: bold;</string>
+                </property>
+                <property name="text">
+                 <string>输入状态:</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <layout class="QGridLayout" name="inputGridLayout">
+                <item row="0" column="0">
+                 <widget class="QLabel" name="input0Led">
+                  <property name="styleSheet">
+                   <string notr="true">QLabel { background-color: #E0E0E0; border: 1px solid #BDBDBD; border-radius: 3px; padding: 2px; }</string>
+                  </property>
+                  <property name="text">
+                   <string>IN0</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
+                  </property>
+                 </widget>
+                </item>
+                <item row="0" column="1">
+                 <widget class="QLabel" name="input1Led">
+                  <property name="styleSheet">
+                   <string notr="true">QLabel { background-color: #E0E0E0; border: 1px solid #BDBDBD; border-radius: 3px; padding: 2px; }</string>
+                  </property>
+                  <property name="text">
+                   <string>IN1</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
+                  </property>
+                 </widget>
+                </item>
+                <item row="0" column="2">
+                 <widget class="QLabel" name="input2Led">
+                  <property name="styleSheet">
+                   <string notr="true">QLabel { background-color: #E0E0E0; border: 1px solid #BDBDBD; border-radius: 3px; padding: 2px; }</string>
+                  </property>
+                  <property name="text">
+                   <string>IN2</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
+                  </property>
+                 </widget>
+                </item>
+                <item row="0" column="3">
+                 <widget class="QLabel" name="input3Led">
+                  <property name="styleSheet">
+                   <string notr="true">QLabel { background-color: #E0E0E0; border: 1px solid #BDBDBD; border-radius: 3px; padding: 2px; }</string>
+                  </property>
+                  <property name="text">
+                   <string>IN3</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
+                  </property>
+                 </widget>
+                </item>
+                <item row="1" column="0">
+                 <widget class="QLabel" name="input4Led">
+                  <property name="styleSheet">
+                   <string notr="true">QLabel { background-color: #E0E0E0; border: 1px solid #BDBDBD; border-radius: 3px; padding: 2px; }</string>
+                  </property>
+                  <property name="text">
+                   <string>IN4</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
+                  </property>
+                 </widget>
+                </item>
+                <item row="1" column="1">
+                 <widget class="QLabel" name="input5Led">
+                  <property name="styleSheet">
+                   <string notr="true">QLabel { background-color: #E0E0E0; border: 1px solid #BDBDBD; border-radius: 3px; padding: 2px; }</string>
+                  </property>
+                  <property name="text">
+                   <string>IN5</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
+                  </property>
+                 </widget>
+                </item>
+                <item row="1" column="2">
+                 <widget class="QLabel" name="input6Led">
+                  <property name="styleSheet">
+                   <string notr="true">QLabel { background-color: #E0E0E0; border: 1px solid #BDBDBD; border-radius: 3px; padding: 2px; }</string>
+                  </property>
+                  <property name="text">
+                   <string>IN6</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
+                  </property>
+                 </widget>
+                </item>
+                <item row="1" column="3">
+                 <widget class="QLabel" name="input7Led">
+                  <property name="styleSheet">
+                   <string notr="true">QLabel { background-color: #E0E0E0; border: 1px solid #BDBDBD; border-radius: 3px; padding: 2px; }</string>
+                  </property>
+                  <property name="text">
+                   <string>IN7</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+             </layout>
+            </widget>
+           </item>
+           <item>
+            <widget class="QGroupBox" name="statusMonitorGroup">
+             <property name="title">
+              <string>状态监控</string>
+             </property>
+             <layout class="QVBoxLayout" name="statusMonitorLayout">
+              <item>
+               <widget class="QTableWidget" name="axisStatusTable">
+                <property name="alternatingRowColors">
+                 <bool>true</bool>
+                </property>
+                <property name="selectionBehavior">
+                 <enum>QAbstractItemView::SelectRows</enum>
+                </property>
+                <property name="gridStyle">
+                 <enum>Qt::SolidLine</enum>
+                </property>
+                <property name="sortingEnabled">
+                 <bool>false</bool>
+                </property>
+                <column>
+                 <property name="text">
+                  <string>轴</string>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>位置(mm)</string>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>速度(mm/s)</string>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>状态</string>
+                 </property>
+                </column>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item>
+          <widget class="QGroupBox" name="logGroup">
+           <property name="title">
+            <string>操作日志</string>
+           </property>
+           <layout class="QVBoxLayout" name="logLayout">
+            <item>
+             <layout class="QHBoxLayout" name="logToolbarLayout">
+              <item>
+               <widget class="QPushButton" name="clearLogBtn">
+                <property name="maximumSize">
+                 <size>
+                  <width>80</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>清空日志</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <spacer name="logToolbarSpacer">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>40</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+              <item>
+               <widget class="QCheckBox" name="autoScrollCheckBox">
+                <property name="text">
+                 <string>自动滚动</string>
+                </property>
+                <property name="checked">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QCheckBox" name="zmotionHexDisplayCheckBox">
+                <property name="text">
+                 <string>显示Hex</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <widget class="QPlainTextEdit" name="zmotionLogEdit">
+              <property name="font">
+               <font>
+                <family>Consolas</family>
+                <pointsize>9</pointsize>
+               </font>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">QPlainTextEdit {
+    background-color: #1E1E1E;
+    color: #FFFFFF;
+    border: 1px solid #3E3E3E;
+    selection-background-color: #264F78;
+}</string>
+              </property>
+              <property name="readOnly">
+               <bool>true</bool>
+              </property>
+              <property name="maximumBlockCount">
+               <number>1000</number>
+              </property>
+             </widget>
             </item>
            </layout>
           </widget>

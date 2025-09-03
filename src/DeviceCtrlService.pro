@@ -6,7 +6,8 @@ CONFIG += c++11
 
 INCLUDEPATH += $$PWD/core \
                $$PWD/devices \
-               $$PWD/protocols
+               $$PWD/protocols \
+               $$OUT_PWD
 DESTDIR = $$PWD/../
 
 # The following define makes your compiler emit warnings if you use
@@ -30,7 +31,8 @@ SOURCES += \
     core/ThreadManager.cpp \
     core/DataManager.cpp \
     devices/LSJDevice.cpp \
-    devices/JGQDevice.cpp
+    devices/JGQDevice.cpp \
+    devices/ZMotionDevice.cpp
 
 HEADERS += \
     core/modbusdata.h \
@@ -42,7 +44,8 @@ HEADERS += \
     core/ThreadManager.h \
     core/DataManager.h \
     devices/LSJDevice.h \
-    devices/JGQDevice.h
+    devices/JGQDevice.h \
+    devices/ZMotionDevice.h
 
 FORMS += \
     mainwindow.ui
@@ -59,4 +62,19 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 win32-msvc {
     QMAKE_CFLAGS += /utf-8
     QMAKE_CXXFLAGS += /utf-8
+    # 禁用编码警告，因为第三方库可能使用不同编码
+    QMAKE_CXXFLAGS += /wd4828
+}
+
+# ZMotion库链接配置
+win32 {
+    # 添加ZMotion库路径
+    LIBS += -L$$PWD/../3rdLib/zmotion/ -lzmotion -lzauxdll
+    
+    # 添加ZMotion头文件路径
+    INCLUDEPATH += $$PWD/../3rdLib/zmotion
+    DEPENDPATH += $$PWD/../3rdLib/zmotion
+    
+    # 确保运行时能找到DLL
+    QMAKE_POST_LINK += $$quote(copy /Y \"$$PWD/../3rdLib/zmotion/*.dll\" \"$$DESTDIR\")
 }

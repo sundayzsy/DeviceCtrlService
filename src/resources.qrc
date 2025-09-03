@@ -1,6 +1,4 @@
 <!DOCTYPE RCC><RCC version="1.0">
 <qresource prefix="/">
-    <file>../config/lsj_device.json</file>
-    <file>../config/jgq_device.json</file>
 </qresource>
 </RCC>

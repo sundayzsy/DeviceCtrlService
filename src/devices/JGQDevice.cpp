@@ -203,11 +203,12 @@ void JGQDevice::generatePollingRequests()
 
 void JGQDevice::initDataMap()
 {
+    int addrOffSet = m_config["modbus_offset"].toInt();
     QJsonArray registers = m_config["registers"].toArray();
     for (const QJsonValue& value : registers)
     {
         QJsonObject obj = value.toObject();
-        quint16 address = obj["address"].toInt();
+        quint16 address = obj["address"].toInt() + addrOffSet;
         QString key = obj["key"].toString();
         QString name = obj["name"].toString();
         quint16 length = obj["length"].toInt();

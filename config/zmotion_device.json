@@ -1,0 +1,68 @@
+{
+    "device_id": "zmotion_001",
+    "device_name": "运动控制卡",
+    "protocol": "zmotion_api",
+    "connection": {
+        "ip": "192.168.1.100",
+        "port": 8089,
+        "timeout": 5000
+    },
+    "axes": [
+        {"id": 0, "name": "X轴", "enabled": true, "maxSpeed": 100.0, "maxAccel": 1000.0},
+        {"id": 1, "name": "Y轴", "enabled": true, "maxSpeed": 100.0, "maxAccel": 1000.0},
+        {"id": 2, "name": "Z轴", "enabled": true, "maxSpeed": 50.0, "maxAccel": 500.0},
+        {"id": 3, "name": "A轴", "enabled": false, "maxSpeed": 360.0, "maxAccel": 3600.0},
+        {"id": 4, "name": "B轴", "enabled": false, "maxSpeed": 360.0, "maxAccel": 3600.0},
+        {"id": 5, "name": "C轴", "enabled": false, "maxSpeed": 360.0, "maxAccel": 3600.0}
+    ],
+    "io": {
+        "inputCount": 16,
+        "outputCount": 16
+    },
+    "registers": [
+        {"key": "axis0_abs_move", "name": "X轴绝对移动", "access": "write", "description": "格式: position,speed"},
+        {"key": "axis0_rel_move", "name": "X轴相对移动", "access": "write", "description": "格式: distance,speed"},
+        {"key": "axis0_stop", "name": "X轴停止", "access": "write", "description": "任意值"},
+        {"key": "axis0_home", "name": "X轴回零", "access": "write", "description": "任意值"},
+        {"key": "axis0_position", "name": "X轴位置", "access": "read", "unit": "mm"},
+        {"key": "axis0_status", "name": "X轴状态", "access": "read", "description": "状态码"},
+        
+        {"key": "axis1_abs_move", "name": "Y轴绝对移动", "access": "write", "description": "格式: position,speed"},
+        {"key": "axis1_rel_move", "name": "Y轴相对移动", "access": "write", "description": "格式: distance,speed"},
+        {"key": "axis1_stop", "name": "Y轴停止", "access": "write", "description": "任意值"},
+        {"key": "axis1_home", "name": "Y轴回零", "access": "write", "description": "任意值"},
+        {"key": "axis1_position", "name": "Y轴位置", "access": "read", "unit": "mm"},
+        {"key": "axis1_status", "name": "Y轴状态", "access": "read", "description": "状态码"},
+        
+        {"key": "axis2_abs_move", "name": "Z轴绝对移动", "access": "write", "description": "格式: position,speed"},
+        {"key": "axis2_rel_move", "name": "Z轴相对移动", "access": "write", "description": "格式: distance,speed"},
+        {"key": "axis2_stop", "name": "Z轴停止", "access": "write", "description": "任意值"},
+        {"key": "axis2_home", "name": "Z轴回零", "access": "write", "description": "任意值"},
+        {"key": "axis2_position", "name": "Z轴位置", "access": "read", "unit": "mm"},
+        {"key": "axis2_status", "name": "Z轴状态", "access": "read", "description": "状态码"},
+        
+        {"key": "output0", "name": "输出0", "access": "write", "description": "0/1"},
+        {"key": "output1", "name": "输出1", "access": "write", "description": "0/1"},
+        {"key": "output2", "name": "输出2", "access": "write", "description": "0/1"},
+        {"key": "output3", "name": "输出3", "access": "write", "description": "0/1"},
+        {"key": "output4", "name": "输出4", "access": "write", "description": "0/1"},
+        {"key": "output5", "name": "输出5", "access": "write", "description": "0/1"},
+        {"key": "output6", "name": "输出6", "access": "write", "description": "0/1"},
+        {"key": "output7", "name": "输出7", "access": "write", "description": "0/1"},
+        
+        {"key": "input0", "name": "输入0", "access": "read", "description": "0/1"},
+        {"key": "input1", "name": "输入1", "access": "read", "description": "0/1"},
+        {"key": "input2", "name": "输入2", "access": "read", "description": "0/1"},
+        {"key": "input3", "name": "输入3", "access": "read", "description": "0/1"},
+        {"key": "input4", "name": "输入4", "access": "read", "description": "0/1"},
+        {"key": "input5", "name": "输入5", "access": "read", "description": "0/1"},
+        {"key": "input6", "name": "输入6", "access": "read", "description": "0/1"},
+        {"key": "input7", "name": "输入7", "access": "read", "description": "0/1"},
+        
+        {"key": "stop_all", "name": "急停所有轴", "access": "write", "description": "任意值"}
+    ],
+    "timing": {
+        "statusUpdateInterval": 500,
+        "autoReconnect": true
+    }
+}
