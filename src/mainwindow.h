@@ -58,6 +58,7 @@ private:
     void initModbusTableUI();
     void initZMotionUI();
     void setupZmotionDeviceConnections();
+    void loadStyleSheet();
 
 private:
     Ui::MainWindow *ui;                 ///< 主窗口的UI

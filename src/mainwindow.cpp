@@ -34,6 +34,9 @@ MainWindow::MainWindow(QWidget *parent)
 //    showMaximized();
     setWindowTitle("设备通信控制服务系统");
 
+    // 加载QSS样式文件
+    loadStyleSheet();
+
     initDeivceTableUI();
     initModbusTableUI();
     initZMotionUI();
@@ -210,7 +213,7 @@ void MainWindow::initDeivceTableUI()
 {
     // 配置新的设备列表表格
     ui->deviceTableWidget->setColumnCount(3);
-    ui->deviceTableWidget->setHorizontalHeaderLabels({"Device Name", "Status", "Action"});
+    ui->deviceTableWidget->setHorizontalHeaderLabels({"设备名称", "状态", "重连"});
     ui->deviceTableWidget->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
     ui->deviceTableWidget->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
     ui->deviceTableWidget->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Stretch);
@@ -517,7 +520,7 @@ void MainWindow::initZMotionUI()
 
     // 1.4 初始化轴状态总览表 (保持不变)
     ui->axisStatusTable->setRowCount(6);
-    ui->axisStatusTable->setHorizontalHeaderLabels({"轴号", "位置(pulse)", "速度(pulse/s)", "状态"});
+    ui->axisStatusTable->setHorizontalHeaderLabels({"轴号", "位置", "速度", "状态"});
     ui->axisStatusTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     for (int i = 0; i < 6; i++) {
         ui->axisStatusTable->setItem(i, 0, new QTableWidgetItem(QString("轴%1").arg(i)));
@@ -640,4 +643,15 @@ void MainWindow::setupZmotionDeviceConnections()
 void MainWindow::on_jgtClearLogBtn_clicked()
 {
     ui->logEdit->clear();
+}
+
+void MainWindow::loadStyleSheet()
+{
+    // 尝试从Qt资源系统加载样式文件
+    QFile styleFile(":/resources/styles/mainwindow.qss");
+    if (styleFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QString styleSheet = QString::fromUtf8(styleFile.readAll());
+        this->setStyleSheet(styleSheet);
+        styleFile.close();
+    }
 }
