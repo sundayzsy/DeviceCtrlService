@@ -19,7 +19,7 @@
 
  void Device::writeText2Device(const QString &text)
  {
-
+     Q_UNUSED(text);
  }
  
  QString Device::deviceId() const

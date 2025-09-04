@@ -394,7 +394,6 @@ void ZMotionDevice::readAllAxisStatus()
         }
         
         // 读取轴状态
-        uint32 status = 0;
         int isIdle = 0;
         result = ZAux_Direct_GetIfIdle(m_zmcHandle, axisId, &isIdle);
         

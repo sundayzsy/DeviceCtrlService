@@ -53,9 +53,6 @@ FORMS += \
 RESOURCES += \
     resources.qrc
 
-# ZMotion库配置
-INCLUDEPATH += $$PWD/../3rdLib/zmotion
-LIBS += -L$$PWD/../3rdLib/zmotion -lzmotion
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
@@ -80,5 +77,5 @@ win32 {
     DEPENDPATH += $$PWD/../3rdLib/zmotion
     
     # 确保运行时能找到DLL
-    QMAKE_POST_LINK += $$quote(copy /Y \"$$PWD/../3rdLib/zmotion/*.dll\" \"$$DESTDIR\")
+    #QMAKE_POST_LINK += $$quote(copy /Y \"$$PWD/../3rdLib/zmotion/*.dll\" \"$$DESTDIR\")
 }
